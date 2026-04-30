@@ -113,11 +113,17 @@
     <div class="header">
         <table width="100%">
             <tr>
-                <td>
-                    <div class="brand">DOM_SOCIAL_HUB</div>
+                <td style="vertical-align: middle;">
+                    <!-- Cek langsung apakah file fisik ada di dalam folder public/ -->
+                    @if (file_exists(public_path('dom-logo.png')))
+                        <img src="{{ public_path('dom-logo.png') }}" alt="DOM Social Hub Logo"
+                            style="height: 50px; margin-bottom: 5px;">
+                    @else
+                        <div class="brand">DOM_SOCIAL_HUB</div>
+                    @endif
                     <div class="subtitle">Central Intelligence Report</div>
                 </td>
-                <td align="right">
+                <td align="right" style="vertical-align: top;">
                     <div class="status-tag">S_OS_V.1.0 // ACTIVE</div>
                     <div style="font-size: 10px; margin-top: 5px;">Gen: {{ $generated_at }}</div>
                 </td>

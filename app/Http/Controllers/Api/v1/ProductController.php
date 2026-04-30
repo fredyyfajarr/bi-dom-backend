@@ -5,9 +5,13 @@ namespace App\Http\Controllers\Api\v1;
 use App\Http\Controllers\Controller;
 use App\Services\ProductService;
 use Illuminate\Http\Request;
+use App\Traits\ApiResponse;
+use Exception;
 
 class ProductController extends Controller
 {
+    use ApiResponse;
+
     protected $service;
 
     // Inject Service via Constructor
@@ -18,8 +22,12 @@ class ProductController extends Controller
 
     public function index()
     {
-        $products = $this->service->getAllProducts();
-        return response()->json(['success' => true, 'data' => $products]);
+        try {
+            $products = $this->service->getAllProducts();
+            return $this->successResponse($products);
+        } catch (Exception $e) {
+            return $this->errorResponse('Gagal mengambil data produk: ' . $e->getMessage(), 500);
+        }
     }
 
     public function store(Request $request)
@@ -31,9 +39,12 @@ class ProductController extends Controller
             'materials' => 'array',
         ]);
 
-        $this->service->saveProductAndRecipe($validated);
-
-        return response()->json(['success' => true, 'message' => 'Product and Recipe saved!']);
+        try {
+            $this->service->saveProductAndRecipe($validated);
+            return $this->successResponse(null, 'Product and Recipe saved!');
+        } catch (Exception $e) {
+            return $this->errorResponse('Gagal menyimpan produk: ' . $e->getMessage(), 500);
+        }
     }
 
     public function update(Request $request, $id)
@@ -45,8 +56,11 @@ class ProductController extends Controller
             'materials' => 'array',
         ]);
 
-        $this->service->updateProductAndRecipe($id, $validated);
-
-        return response()->json(['success' => true, 'message' => 'Product and Recipe updated!']);
+        try {
+            $this->service->updateProductAndRecipe($id, $validated);
+            return $this->successResponse(null, 'Product and Recipe updated!');
+        } catch (Exception $e) {
+            return $this->errorResponse('Gagal mengupdate produk: ' . $e->getMessage(), 500);
+        }
     }
 }

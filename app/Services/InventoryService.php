@@ -3,14 +3,14 @@
 namespace App\Services;
 
 use App\Repositories\InventoryRepository;
-use App\Repositories\DashboardRepository; // Import DashboardRepo
+use App\Repositories\DashboardRepository;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\Cache; // Import Cache untuk caching data
+use Illuminate\Support\Facades\Cache;
 
 class InventoryService
 {
     protected $repo;
-    protected $dashboardRepo; // Tambahkan variabel baru
+    protected $dashboardRepo;
 
     // Lakukan Dependency Injection untuk memanggil kedua Repository
     public function __construct(InventoryRepository $repo, DashboardRepository $dashboardRepo)
@@ -29,8 +29,9 @@ class InventoryService
 
         // 1. Ambil data total transaksi 30 hari ke belakang
         $startDate = Carbon::now()->subDays(30);
-        $kpiStats = $this->dashboardRepo->getKpiStats($startDate);
-        $totalTrx30Days = $kpiStats['transaction_count'];
+
+        // PERBAIKAN: Gunakan fungsi baru yang spesifik dari DashboardRepo, BUKAN getKpiStats
+        $totalTrx30Days = $this->dashboardRepo->getTotalTransactionsSince($startDate);
 
         // 2. Hitung Rata-rata Harian
         // Cegah pembagian dengan nol jika data belum ada sama sekali

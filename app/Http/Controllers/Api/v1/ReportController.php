@@ -16,16 +16,24 @@ class ReportController extends Controller
     }
 
     public function exportPdf(Request $request)
-    {
-        // Tangkap parameter 'days' dari React (Frontend)
-        $days = $request->query('days', 30);
+        {
+            try {
+                $days = $request->query('days', 30);
 
-        // Panggil service yang mengembalikan output PDF raw
-        $pdfOutput = $this->service->generateMonthlyPdf($days);
+                $pdfOutput = $this->service->generateMonthlyPdf($days);
 
-        // Kembalikan sebagai response download PDF
-        return response($pdfOutput, 200)
-            ->header('Content-Type', 'application/pdf')
-            ->header('Content-Disposition', 'attachment; filename="DOM_Report_Last_' . $days . '_Days.pdf"');
-    }
+                return response($pdfOutput, 200)
+                    ->header('Content-Type', 'application/pdf')
+                    ->header('Content-Disposition', 'attachment; filename="DOM_Report_Last_' . $days . '_Days.pdf"');
+
+            } catch (\Exception $e) {
+                // Jika meledak, berikan pesan error JSON yang jelas!
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Gagal mencetak PDF: ' . $e->getMessage(),
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine()
+                ], 500);
+            }
+        }
 }

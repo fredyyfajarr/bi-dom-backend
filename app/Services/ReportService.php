@@ -15,17 +15,16 @@ class ReportService
         $this->repo = $repo;
     }
 
-    // Di dalam ReportService.php
-public function generateMonthlyPdf($days)
-{
-    $startDate = Carbon::now()->subDays($days);
-    $data = $this->repo->getReportData($startDate);
-    $data['days'] = $days;
-    $data['generated_at'] = Carbon::now()->format('d M Y H:i');
+   public function generateMonthlyPdf($days)
+    {
+        $startDate = \Carbon\Carbon::now()->subDays($days);
+        $data = $this->repo->getReportData($startDate);
+        $data['days'] = $days;
+        $data['generated_at'] = \Carbon\Carbon::now()->format('d M Y H:i');
 
-    // Pastikan string 'reports.daily' sesuai dengan folder & nama file
-    $pdf = Pdf::loadView('reports.daily', $data);
+        // Langsung panggil view, biarkan Blade yang mengurus gambarnya
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.daily', $data);
 
-    return $pdf->output();
-}
+        return $pdf->output();
+    }
 }

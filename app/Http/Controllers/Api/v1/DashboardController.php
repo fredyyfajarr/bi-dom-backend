@@ -104,5 +104,15 @@ class DashboardController extends Controller
         ]);
     }
 
-    
+    public function getPeakHourDetail(Request $request)
+    {
+        [$year, $period, $monthIndex] = $this->getParams($request);
+        $dayName = $request->query('day');
+        $hour = $request->query('hour');
+
+        return response()->json([
+            'success' => true,
+            'data' => $this->service->getPeakHourDetail($year, $period, $monthIndex, $dayName, $hour)
+        ]);
+    }
 }

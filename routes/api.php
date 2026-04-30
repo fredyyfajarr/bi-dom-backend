@@ -43,6 +43,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/inventory-alerts', [DashboardController::class, 'getLowStockAlerts']);
             Route::get('/donut-chart', [DashboardController::class, 'getDonutData']);
             Route::get('/advanced-analytics', [DashboardController::class, 'getAdvancedAnalytics']);
+            Route::get('/peak-hour-detail', [DashboardController::class, 'getPeakHourDetail']);
         });
 
         // ==========================================
