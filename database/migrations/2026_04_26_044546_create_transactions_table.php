@@ -12,7 +12,7 @@ return new class extends Migration {
             $table->dateTime('trx_date')->index(); // Index penting untuk filter tanggal di BI
             $table->timestamps();
         });
-    }
+}
 
     public function down(): void {
         Schema::dropIfExists('transactions');
