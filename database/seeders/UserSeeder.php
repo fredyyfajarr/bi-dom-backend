@@ -10,14 +10,20 @@ class UserSeeder extends Seeder
 {
     public function run(): void
     {
-        // Pastikan akun Manager Sofyan Haris selalu ada
-        User::updateOrCreate(
-            ['email' => 'sofyan.haris@domhub.com'], // Gunakan email unik
-            [
-                'name' => 'Sofyan Haris',
-                'password' => Hash::make('password123'), // Silakan ganti passwordnya
-                'role' => 'manager',
-            ]
-        );
+        // 1. Akun Manager (Super Admin)
+        User::create([
+            'name' => 'Sofyan Haris',
+            'email' => 'manager@dom.com',
+            'password' => Hash::make('password123'),
+            'role' => 'manager',
+        ]);
+
+        // 2. Akun Kasir (Terbatas)
+        User::create([
+            'name' => 'Staff Kasir',
+            'email' => 'kasir@dom.com',
+            'password' => Hash::make('password123'),
+            'role' => 'kasir',
+        ]);
     }
 }

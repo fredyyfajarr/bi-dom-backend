@@ -39,7 +39,7 @@ class RealisticTransactionSeeder extends Seeder
 
         // 4. SETUP RENTANG WAKTU
         $startDate = Carbon::create(2025, 1, 1);
-        $endDate = Carbon::create(2026, 4, 30);
+        $endDate = Carbon::create(2026, 5, 10);
 
         $receiptCounter = 1;
 

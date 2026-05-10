@@ -15,10 +15,10 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
-            UserSeeder::class,        // Login Manager
+            UserSeeder::class,        // Login Manager dan Kasir
             InventorySeeder::class,   // Daftar Stok Bahan Baku
             ProductSeeder::class,     // Daftar Menu (Kopi, Makanan, dll)
-            TransactionSeeder::class, // Simulasi Data Transaksi 3 Bulan
+            RealisticTransactionSeeder::class, // Generate data transaksi yang realistis selama 16 bulan terakhir
         ]);
     }
 }
