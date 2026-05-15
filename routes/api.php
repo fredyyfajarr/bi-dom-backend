@@ -35,6 +35,7 @@ Route::prefix('v1')->group(function () {
 
         // MODULE: IMPORT (Data Transaksi Harian)
         Route::post('/import', [ImportController::class, 'uploadCsv']);
+        Route::post('/import-csv', [ImportController::class, 'uploadCsv']);
 
         // MODULE: INVOICES (Lihat Daftar Transaksi)
         Route::prefix('invoices')->group(function () {

@@ -13,13 +13,14 @@ class InvoiceService
     public function getAllInvoices($search, $sortBy, $sortDir, $filterDate, $perPage = 15)
     {
         $query = DB::table('transactions')
+            ->leftJoin('transaction_details', 'transaction_details.transaction_id', '=', 'transactions.id')
             ->select(
                 'transactions.id',
                 'transactions.receipt_no',
                 'transactions.created_at',
-                // Subquery aman untuk menghitung total langsung dari detail
-                DB::raw("(SELECT SUM({$this->revenueCol}) FROM transaction_details WHERE transaction_id = transactions.id) as total_amount")
-            );
+                DB::raw("COALESCE(SUM({$this->revenueCol}), transactions.total_amount) as total_amount")
+            )
+            ->groupBy('transactions.id', 'transactions.receipt_no', 'transactions.created_at', 'transactions.total_amount');
 
         // 1. SEARCHING (Cari berdasarkan Nomor Resi)
         if (!empty($search)) {
