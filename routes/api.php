@@ -16,7 +16,7 @@ Route::prefix('v1')->group(function () {
     // ==========================================
     // PUBLIC ROUTES (Bisa diakses tanpa login)
     // ==========================================
-    Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
 
 
     // ==========================================
@@ -32,6 +32,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/user', function (Request $request) {
             return $request->user();
         });
+        Route::post('/logout', [AuthController::class, 'logout']);
 
         // MODULE: IMPORT (Data Transaksi Harian)
         Route::post('/import', [ImportController::class, 'uploadCsv']);
