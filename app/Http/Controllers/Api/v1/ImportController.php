@@ -20,13 +20,14 @@ class ImportController extends Controller
 
     public function uploadCsv(Request $request)
     {
+        $request->validate([
+            'file' => 'nullable|file|mimes:csv,txt|max:5120',
+            'csv_file' => 'nullable|file|mimes:csv,txt|max:5120',
+        ]);
+
         $uploadedFile = $request->file('file') ?? $request->file('csv_file');
         if (!$uploadedFile) {
             return $this->errorResponse('File CSV wajib diunggah.', 422);
-        }
-
-        if (!in_array($uploadedFile->getClientOriginalExtension(), ['csv', 'txt'])) {
-            return $this->errorResponse('File harus berformat csv atau txt.', 422);
         }
 
         try {
