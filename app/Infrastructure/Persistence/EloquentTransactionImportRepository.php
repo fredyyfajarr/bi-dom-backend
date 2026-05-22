@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\DB;
 
 class EloquentTransactionImportRepository implements TransactionImportRepositoryInterface
 {
+    private const INSERT_CHUNK_SIZE = 500;
+
     public function saveSimpleTransactions(array $transactions): int
     {
         $now = now();
@@ -48,8 +50,13 @@ class EloquentTransactionImportRepository implements TransactionImportRepository
         }
 
         DB::transaction(function () use ($transactions, $products) {
+            $now = now();
+            $transactionRows = [];
+            $trxDatesByReceipt = [];
+
             foreach ($transactions as $transaction) {
                 $trxDate = Carbon::parse($transaction['trx_date']);
+                $trxDatesByReceipt[$transaction['receipt_no']] = $trxDate;
                 $totalAmount = array_sum(array_column($transaction['items'], 'subtotal'));
                 $totalCogs = 0;
 
@@ -58,32 +65,50 @@ class EloquentTransactionImportRepository implements TransactionImportRepository
                     $totalCogs += ((float) $product->cogs) * (int) $item['qty'];
                 }
 
-                $transactionId = DB::table('transactions')->insertGetId([
+                $transactionRows[] = [
                     'receipt_no' => $transaction['receipt_no'],
                     'trx_date' => $trxDate,
                     'total_amount' => $totalAmount,
                     'total_cogs' => $totalCogs,
                     'net_profit' => $totalAmount - $totalCogs,
                     'created_at' => $trxDate,
-                    'updated_at' => now(),
-                ]);
+                    'updated_at' => $now,
+                ];
+            }
 
-                $details = array_map(function ($item) use ($transactionId, $products, $trxDate) {
+            foreach (array_chunk($transactionRows, self::INSERT_CHUNK_SIZE) as $chunk) {
+                DB::table('transactions')->insert($chunk);
+            }
+
+            $transactionIds = DB::table('transactions')
+                ->whereIn('receipt_no', array_column($transactionRows, 'receipt_no'))
+                ->pluck('id', 'receipt_no')
+                ->all();
+
+            $detailRows = [];
+            foreach ($transactions as $transaction) {
+                $receiptNo = $transaction['receipt_no'];
+                $transactionId = $transactionIds[$receiptNo] ?? throw new Exception("Transaksi {$receiptNo} gagal dipetakan setelah import.");
+                $trxDate = $trxDatesByReceipt[$receiptNo];
+
+                foreach ($transaction['items'] as $item) {
                     $product = $products[$item['product_name']];
                     $qty = (int) $item['qty'];
 
-                    return [
+                    $detailRows[] = [
                         'transaction_id' => $transactionId,
                         'product_id' => $product->id,
                         'qty' => $qty,
                         'subtotal' => (float) $item['subtotal'],
                         'subtotal_cogs' => ((float) $product->cogs) * $qty,
                         'created_at' => $trxDate,
-                        'updated_at' => now(),
+                        'updated_at' => $now,
                     ];
-                }, $transaction['items']);
+                }
+            }
 
-                DB::table('transaction_details')->insert($details);
+            foreach (array_chunk($detailRows, self::INSERT_CHUNK_SIZE) as $chunk) {
+                DB::table('transaction_details')->insert($chunk);
             }
         });
         Cache::flush();
