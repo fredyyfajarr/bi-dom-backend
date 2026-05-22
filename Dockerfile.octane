@@ -1,9 +1,33 @@
 FROM dunglas/frankenphp
 
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
 RUN install-php-extensions \
     pcntl \
-    pdo_mysql
+    pdo_mysql \
+    zip
 
 WORKDIR /app
 
-ENTRYPOINT ["php", "artisan", "octane:frankenphp", "--host=0.0.0.0", "--port=8000"]
+COPY composer.json composer.lock ./
+RUN composer install \
+    --no-dev \
+    --no-interaction \
+    --no-progress \
+    --no-scripts \
+    --prefer-dist \
+    --optimize-autoloader
+
+COPY . .
+
+RUN composer dump-autoload --optimize \
+    && php artisan package:discover --ansi \
+    && mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache \
+    && chmod -R ug+rwx storage bootstrap/cache
+
+ENV APP_ENV=production
+ENV OCTANE_SERVER=frankenphp
+
+EXPOSE 8000
+
+CMD ["php", "artisan", "octane:frankenphp", "--host=0.0.0.0", "--port=8000", "--workers=2", "--max-requests=500"]
