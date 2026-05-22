@@ -225,6 +225,27 @@ Di VS Code, flow ini bisa dijalankan lewat task yang menyalakan frontend, Larave
 
 ---
 
+## Mode Cepat: Octane + FrankenPHP
+
+Untuk local development di Windows, FrankenPHP dijalankan lewat Docker karena installer Octane tidak menyediakan binary FrankenPHP native untuk Windows.
+
+Pastikan Docker Desktop sudah berjalan, lalu build dan jalankan backend Octane:
+
+```bash
+docker build -f Dockerfile.octane -t bi-dom-backend-octane .
+docker run --rm --name bi-dom-backend-octane -p 8000:8000 -v "%cd%:/app" -e DB_HOST=host.docker.internal -e APP_ENV=local -e APP_DEBUG=true bi-dom-backend-octane --workers=2 --max-requests=500
+```
+
+Jika memakai VS Code dari root workspace BI-DOM, tekan `Ctrl+Shift+B` untuk menjalankan frontend, Octane backend, queue worker, dan scheduler sekaligus.
+
+Untuk menghentikan container Octane:
+
+```bash
+docker rm -f bi-dom-backend-octane
+```
+
+---
+
 ## Akun Demo Seeder
 
 | Role | Email | Password |

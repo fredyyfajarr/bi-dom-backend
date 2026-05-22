@@ -104,12 +104,13 @@ class DashboardService
             $title = "ANNUAL_CATEGORY_ANALYSIS: $year";
         } else {
             $actualMonth = $monthIndex + 1;
-            $daysInMonth = cal_days_in_month(CAL_GREGORIAN, $actualMonth, $year);
-            $monthName = date('M', mktime(0, 0, 0, $actualMonth, 10));
+            $monthDate = Carbon::create((int) $year, $actualMonth, 1);
+            $daysInMonth = $monthDate->daysInMonth;
+            $monthName = $monthDate->format('M');
             for ($i = 1; $i <= $daysInMonth; $i++) {
                 $labels[] = $i.' '.$monthName;
             }
-            $title = 'DAILY_CATEGORY_ANALYSIS: '.date('F Y', mktime(0, 0, 0, $actualMonth, 10))." $year";
+            $title = 'DAILY_CATEGORY_ANALYSIS: '.$monthDate->format('F Y');
         }
 
         $datasets = [];

@@ -1,0 +1,9 @@
+FROM dunglas/frankenphp
+
+RUN install-php-extensions \
+    pcntl \
+    pdo_mysql
+
+WORKDIR /app
+
+ENTRYPOINT ["php", "artisan", "octane:frankenphp", "--host=0.0.0.0", "--port=8000"]
