@@ -2,21 +2,22 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
+#[Table('inventories')]
+#[Fillable(['item_name', 'unit', 'current_stock', 'min_stock', 'usage_per_trx'])]
 class Inventory extends Model
 {
     use HasFactory;
 
-    protected $table = 'inventories';
-    protected $fillable = ['item_name', 'unit', 'current_stock', 'min_stock', 'usage_per_trx'];
-
-    // Jembatan balik untuk mengetahui bahan ini dipakai di produk apa saja
-    public function products()
+    public function products(): BelongsToMany
     {
         return $this->belongsToMany(Product::class, 'product_inventory')
-                    ->withPivot('usage_qty')
-                    ->withTimestamps();
+            ->withPivot('usage_qty')
+            ->withTimestamps();
     }
 }

@@ -2,27 +2,28 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
+#[Table('products')]
+#[Fillable(['category_id', 'name', 'price'])]
 class Product extends Model
 {
     use HasFactory;
 
-    // Sesuaikan dengan kolom migration Anda
-    protected $fillable = ['category_id', 'name', 'price'];
-
-    // Relasi ke Category
-    public function category()
+    public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
     }
 
-    // Jembatan menuju bahan baku (Resep)
-    public function materials()
+    public function materials(): BelongsToMany
     {
         return $this->belongsToMany(Inventory::class, 'product_inventory')
-                    ->withPivot('usage_qty')
-                    ->withTimestamps();
+            ->withPivot('usage_qty')
+            ->withTimestamps();
     }
 }

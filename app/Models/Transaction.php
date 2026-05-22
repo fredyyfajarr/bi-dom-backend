@@ -2,14 +2,17 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
+#[Table('transactions')]
+#[Fillable(['receipt_no', 'trx_date', 'total_amount'])]
 class Transaction extends Model
 {
-    protected $fillable = ['receipt_no', 'trx_date', 'total_amount'];
-
-    // Tambahkan relasi ini
-    public function details() {
+    public function details(): HasMany
+    {
         return $this->hasMany(TransactionDetail::class);
     }
 }
