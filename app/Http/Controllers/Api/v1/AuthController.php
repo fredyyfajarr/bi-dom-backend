@@ -3,38 +3,31 @@
 namespace App\Http\Controllers\Api\v1;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use App\Http\Requests\Api\V1\LoginRequest;
 use App\Services\AuthService;
 use App\Traits\ApiResponse;
 use Exception;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class AuthController extends Controller
 {
     use ApiResponse;
 
-    protected $service;
+    public function __construct(private readonly AuthService $service) {}
 
-    public function __construct(AuthService $service)
+    public function login(LoginRequest $request): JsonResponse
     {
-        $this->service = $service;
-    }
-
-    public function login(Request $request)
-    {
-        $request->validate([
-            'email' => 'required|email',
-            'password' => 'required'
-        ]);
-
         try {
-            $data = $this->service->login($request->only('email', 'password'));
+            $data = $this->service->login($request->credentials());
+
             return $this->successResponse($data, 'Login berhasil. Welcome to DOM HUB.');
         } catch (Exception $e) {
             return $this->errorResponse($e->getMessage(), 401);
         }
     }
 
-    public function logout(Request $request)
+    public function logout(Request $request): JsonResponse
     {
         $request->user()?->currentAccessToken()?->delete();
 

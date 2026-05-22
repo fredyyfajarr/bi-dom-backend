@@ -3,31 +3,29 @@
 namespace App\Http\Controllers\Api\v1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\InvoiceIndexRequest;
 use App\Services\InvoiceService;
-use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 
 class InvoiceController extends Controller
 {
-    protected $service;
+    public function __construct(private readonly InvoiceService $service) {}
 
-    public function __construct(InvoiceService $service)
+    public function index(InvoiceIndexRequest $request): JsonResponse
     {
-        $this->service = $service;
-    }
+        $filters = $request->filters();
 
-    public function index(Request $request)
-    {
-        $search = $request->query('search', '');
-        $sortBy = $request->query('sort_by', 'created_at');
-        $sortDir = $request->query('sort_dir', 'desc');
-        $filterDate = $request->query('filter_date', 'all'); // all, today, this_month, this_year
-        $perPage = $request->query('per_page', 15);
-
-        $invoices = $this->service->getAllInvoices($search, $sortBy, $sortDir, $filterDate, $perPage);
+        $invoices = $this->service->getAllInvoices(
+            $filters['search'],
+            $filters['sort_by'],
+            $filters['sort_dir'],
+            $filters['filter_date'],
+            $filters['per_page'],
+        );
 
         return response()->json([
             'success' => true,
-            'data' => $invoices
+            'data' => $invoices,
         ]);
     }
 }

@@ -3,64 +3,69 @@
 namespace App\Http\Controllers\Api\v1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\StoreProductRequest;
+use App\Http\Requests\Api\V1\UpdateProductRequest;
 use App\Services\ProductService;
-use Illuminate\Http\Request;
 use App\Traits\ApiResponse;
 use Exception;
+use Illuminate\Http\JsonResponse;
 
 class ProductController extends Controller
 {
     use ApiResponse;
 
-    protected $service;
+    public function __construct(private readonly ProductService $service) {}
 
-    // Inject Service via Constructor
-    public function __construct(ProductService $service)
-    {
-        $this->service = $service;
-    }
-
-    public function index()
+    public function index(): JsonResponse
     {
         try {
             $products = $this->service->getAllProducts();
+
             return $this->successResponse($products);
         } catch (Exception $e) {
-            return $this->errorResponse('Gagal mengambil data produk: ' . $e->getMessage(), 500);
+            return $this->errorResponse('Gagal mengambil data produk: '.$e->getMessage(), 500);
         }
     }
 
-    public function store(Request $request)
+    public function show(int $id): JsonResponse
     {
-        $validated = $request->validate([
-            'name' => 'required|string',
-            'category_id' => 'required|integer',
-            'price' => 'required|numeric',
-            'materials' => 'array',
-        ]);
-
         try {
-            $this->service->saveProductAndRecipe($validated);
+            return $this->successResponse($this->service->findProduct($id));
+        } catch (Exception $e) {
+            return $this->errorResponse('Produk tidak ditemukan: '.$e->getMessage(), 404);
+        }
+    }
+
+    public function store(StoreProductRequest $request): JsonResponse
+    {
+        try {
+            $this->service->saveProductAndRecipe($request->productData());
+
             return $this->successResponse(null, 'Product and Recipe saved!');
         } catch (Exception $e) {
-            return $this->errorResponse('Gagal menyimpan produk: ' . $e->getMessage(), 500);
+            return $this->errorResponse('Gagal menyimpan produk: '.$e->getMessage(), 500);
         }
     }
 
-    public function update(Request $request, $id)
+    public function update(UpdateProductRequest $request, int $id): JsonResponse
     {
-        $validated = $request->validate([
-            'name' => 'required|string',
-            'category_id' => 'required|integer',
-            'price' => 'required|numeric',
-            'materials' => 'array',
-        ]);
-
         try {
-            $this->service->updateProductAndRecipe($id, $validated);
+            $this->service->updateProductAndRecipe($id, $request->productData());
+
             return $this->successResponse(null, 'Product and Recipe updated!');
         } catch (Exception $e) {
-            return $this->errorResponse('Gagal mengupdate produk: ' . $e->getMessage(), 500);
+            return $this->errorResponse('Gagal mengupdate produk: '.$e->getMessage(), 500);
+        }
+    }
+
+    public function destroy(int $id): JsonResponse
+    {
+        try {
+            $this->service->deleteProduct($id);
+
+            return $this->successResponse(null, 'Product deleted!');
+        } catch (Exception $e) {
+            return $this->errorResponse('Gagal menghapus produk: '.$e->getMessage(), 500);
         }
     }
 }

@@ -2,34 +2,32 @@
 
 namespace App\Services;
 
+use App\Models\User;
 use App\Repositories\AuthRepository;
-use Illuminate\Support\Facades\Hash;
 use Exception;
+use Illuminate\Support\Facades\Hash;
 
 class AuthService
 {
-    protected $repo;
+    public function __construct(private readonly AuthRepository $repo) {}
 
-    public function __construct(AuthRepository $repo)
-    {
-        $this->repo = $repo;
-    }
-
-    public function login(array $credentials)
+    /**
+     * @param  array{email: string, password: string}  $credentials
+     * @return array{user: User, token: string}
+     */
+    public function login(array $credentials): array
     {
         $user = $this->repo->findByEmail($credentials['email']);
 
-        // Jika user tidak ada atau password salah, lempar error
-        if (!$user || !Hash::check($credentials['password'], $user->password)) {
+        if (! $user || ! Hash::check($credentials['password'], $user->password)) {
             throw new Exception('Kredensial tidak valid. Silakan cek email dan password Anda.', 401);
         }
 
-        // Buat token baru
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return [
             'user' => $user,
-            'token' => $token
+            'token' => $token,
         ];
     }
 }

@@ -3,116 +3,102 @@
 namespace App\Http\Controllers\Api\v1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\DashboardFilterRequest;
 use App\Services\DashboardService;
-use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 
 class DashboardController extends Controller
 {
-    protected $service;
+    public function __construct(private readonly DashboardService $service) {}
 
-    public function __construct(DashboardService $service)
-    {
-        $this->service = $service;
-    }
-
-    // --- HELPER UNTUK MEMECAH URL PARAMETER ---
-    private function getParams(Request $request)
-    {
-        $excludeRaw = $request->query('exclude', '');
-
-        // array_filter memastikan jika kosong, hasilnya [] bukan [""]
-        $excludeCategories = $excludeRaw ? array_filter(explode(',', $excludeRaw)) : [];
-
-        return [
-            $request->query('year', date('Y')),
-            $request->query('period', 'year'),
-            $request->query('monthIndex', null),
-            $excludeCategories
-        ];
-    }
-
-    // --- ENDPOINT METADATA & ALERTS ---
-    public function getAvailableYears()
+    public function getAvailableYears(): JsonResponse
     {
         return response()->json(['success' => true, 'data' => $this->service->getAvailableYears()]);
     }
 
-    public function getCategoriesList()
+    public function getCategoriesList(): JsonResponse
     {
         return response()->json(['success' => true, 'data' => $this->service->getCategoriesList()]);
     }
 
-    public function getLowStockAlerts()
+    public function getLowStockAlerts(): JsonResponse
     {
         return response()->json(['success' => true, 'data' => $this->service->getLowStockProducts()]);
     }
 
-    // --- ENDPOINT DATA DASHBOARD ---
-    public function getKpi(Request $request)
+    public function getKpi(DashboardFilterRequest $request): JsonResponse
     {
-        [$year, $period, $monthIndex, $exclude] = $this->getParams($request);
+        [$year, $period, $monthIndex, $exclude] = $request->filters();
+
         return response()->json(['success' => true, 'data' => $this->service->getKpiStats($year, $period, $monthIndex, $exclude)]);
     }
 
-    public function getCharts(Request $request)
+    public function getCharts(DashboardFilterRequest $request): JsonResponse
     {
         // Chart sengaja tidak menerima $exclude agar garisnya tetap utuh dan animasinya mulus
-        [$year, $period, $monthIndex] = $this->getParams($request);
+        [$year, $period, $monthIndex] = $request->filters();
+
         return response()->json(['success' => true, 'data' => $this->service->getSalesChart($year, $period, $monthIndex)]);
     }
 
-    public function getTransactions(Request $request)
+    public function getTransactions(DashboardFilterRequest $request): JsonResponse
     {
-        [$year, $period, $monthIndex, $exclude] = $this->getParams($request);
+        [$year, $period, $monthIndex, $exclude] = $request->filters();
+
         return response()->json(['success' => true, 'data' => $this->service->getLatestTransactions($year, $period, $monthIndex, $exclude)]);
     }
 
-    public function getTopProducts(Request $request)
+    public function getTopProducts(DashboardFilterRequest $request): JsonResponse
     {
-        [$year, $period, $monthIndex, $exclude] = $this->getParams($request);
+        [$year, $period, $monthIndex, $exclude] = $request->filters();
+
         return response()->json(['success' => true, 'data' => $this->service->getTopProducts($year, $period, $monthIndex, $exclude)]);
     }
 
-    // --- ENDPOINT MODAL DETAIL ---
-    public function getTransactionDetail($id)
+    public function getTransactionDetail(int $id): JsonResponse
     {
         $data = $this->service->getTransactionDetailData($id);
-        if (!$data) return response()->json(['success' => false, 'message' => 'Transaction not found'], 404);
+        if (! $data) {
+            return response()->json(['success' => false, 'message' => 'Transaction not found'], 404);
+        }
+
         return response()->json(['success' => true, 'data' => $data]);
     }
 
-    public function getDonutData(Request $request)
+    public function getDonutData(DashboardFilterRequest $request): JsonResponse
     {
-        [$year, $period, $monthIndex, $exclude] = $this->getParams($request);
+        [$year, $period, $monthIndex, $exclude] = $request->filters();
+
         return response()->json([
             'success' => true,
-            'data' => $this->service->getCategoryProportions($year, $period, $monthIndex, $exclude)
+            'data' => $this->service->getCategoryProportions($year, $period, $monthIndex, $exclude),
         ]);
     }
 
-    public function getAdvancedAnalytics(Request $request)
+    public function getAdvancedAnalytics(DashboardFilterRequest $request): JsonResponse
     {
-        [$year, $period, $monthIndex] = $this->getParams($request);
+        [$year, $period, $monthIndex] = $request->filters();
+
         return response()->json([
             'success' => true,
             'data' => [
                 'daily_revenue' => $this->service->getDailyRevenue($year, $period, $monthIndex),
                 'peak_hours' => $this->service->getPeakHours($year, $period, $monthIndex),
                 'stacked_trend' => $this->service->getStackedCategoryTrend($year, $period, $monthIndex),
-                'market_basket' => $this->service->getMarketBasket($year, $period, $monthIndex)
-            ]
+                'market_basket' => $this->service->getMarketBasket($year, $period, $monthIndex),
+            ],
         ]);
     }
 
-    public function getPeakHourDetail(Request $request)
+    public function getPeakHourDetail(DashboardFilterRequest $request): JsonResponse
     {
-        [$year, $period, $monthIndex] = $this->getParams($request);
+        [$year, $period, $monthIndex] = $request->filters();
         $dayName = $request->query('day');
         $hour = $request->query('hour');
 
         return response()->json([
             'success' => true,
-            'data' => $this->service->getPeakHourDetail($year, $period, $monthIndex, $dayName, $hour)
+            'data' => $this->service->getPeakHourDetail($year, $period, $monthIndex, $dayName, $hour),
         ]);
     }
 }

@@ -7,14 +7,12 @@ use Carbon\Carbon;
 
 class DashboardService
 {
-    protected $repo;
+    public function __construct(private readonly DashboardRepository $repo) {}
 
-    public function __construct(DashboardRepository $repo)
-    {
-        $this->repo = $repo;
-    }
-
-    private function getDateRange($year, $period, $monthIndex)
+    /**
+     * @return array{0: Carbon, 1: Carbon}
+     */
+    private function getDateRange(string|int $year, string $period, mixed $monthIndex): array
     {
         if ($period === 'month' && $monthIndex !== null) {
             $month = $monthIndex + 1;
@@ -24,21 +22,29 @@ class DashboardService
             $start = Carbon::create($year, 1, 1)->startOfYear();
             $end = Carbon::create($year, 1, 1)->endOfYear();
         }
+
         return [$start, $end];
     }
 
-    public function getAvailableYears()
+    /**
+     * @return array<int, int>
+     */
+    public function getAvailableYears(): array
     {
         $years = $this->repo->getAvailableYears();
+
         return empty($years) ? [(int) date('Y')] : $years;
     }
 
-    public function getCategoriesList()
+    public function getCategoriesList(): mixed
     {
         return $this->repo->getCategoriesList();
     }
 
-    public function getLowStockProducts()
+    /**
+     * @return array<int, array{name: string, stock: mixed, unit: string}>
+     */
+    public function getLowStockProducts(): array
     {
         $startDate = Carbon::now()->subDays(30);
         $totalTrx30Days = $this->repo->getTotalTransactionsSince($startDate);
@@ -55,9 +61,9 @@ class DashboardService
 
             if ($sisaStok <= $item->min_stock) {
                 $criticalItems[] = [
-                    'name'  => $item->item_name,
+                    'name' => $item->item_name,
                     'stock' => $item->current_stock,
-                    'unit'  => $item->unit
+                    'unit' => $item->unit,
                 ];
             }
         }
@@ -65,7 +71,7 @@ class DashboardService
         return collect($criticalItems)->sortBy('stock')->values()->all();
     }
 
-    public function getKpiStats($year, $period, $monthIndex, $excludeCategories = [])
+    public function getKpiStats(string|int $year, string $period, mixed $monthIndex, array $excludeCategories = []): array
     {
         [$startDate, $endDate] = $this->getDateRange($year, $period, $monthIndex);
 
@@ -83,11 +89,11 @@ class DashboardService
             'total_cogs' => $cogs,
             'net_profit' => $netProfit,
             'profit_margin' => round($profitMargin, 1),
-            'transaction_count' => $trxCount
+            'transaction_count' => $trxCount,
         ];
     }
 
-    public function getSalesChart($year, $period = 'year', $monthIndex = null)
+    public function getSalesChart(string|int $year, string $period = 'year', mixed $monthIndex = null): array
     {
         $labels = [];
         $dbCategories = $this->repo->getCategoriesList();
@@ -100,21 +106,23 @@ class DashboardService
             $actualMonth = $monthIndex + 1;
             $daysInMonth = cal_days_in_month(CAL_GREGORIAN, $actualMonth, $year);
             $monthName = date('M', mktime(0, 0, 0, $actualMonth, 10));
-            for ($i = 1; $i <= $daysInMonth; $i++) { $labels[] = $i . ' ' . $monthName; }
-            $title = "DAILY_CATEGORY_ANALYSIS: " . date('F Y', mktime(0, 0, 0, $actualMonth, 10)) . " $year";
+            for ($i = 1; $i <= $daysInMonth; $i++) {
+                $labels[] = $i.' '.$monthName;
+            }
+            $title = 'DAILY_CATEGORY_ANALYSIS: '.date('F Y', mktime(0, 0, 0, $actualMonth, 10))." $year";
         }
 
         $datasets = [];
         foreach ($dbCategories as $index => $cat) {
-            $color = $colorPalette[$index] ?? '#' . substr(md5($cat->name), 0, 6);
+            $color = $colorPalette[$index] ?? '#'.substr(md5($cat->name), 0, 6);
             $datasets[$cat->id] = [
                 'categoryId' => $cat->id,
                 'label' => strtoupper($cat->name),
                 'data' => array_fill(0, count($labels), 0),
                 'borderColor' => $color,
-                'backgroundColor' => $color . '20',
+                'backgroundColor' => $color.'20',
                 'fill' => false,
-                'tension' => 0.3
+                'tension' => 0.3,
             ];
         }
 
@@ -128,61 +136,73 @@ class DashboardService
                 $datasets[$row->category_id]['data'][$idx] = (float) $row->total_revenue;
             }
         }
+
         return ['labels' => $labels, 'datasets' => array_values($datasets), 'period' => $period, 'title' => $title];
     }
 
-    public function getLatestTransactions($year, $period, $monthIndex, $excludeCategories = [])
+    public function getLatestTransactions(string|int $year, string $period, mixed $monthIndex, array $excludeCategories = []): mixed
     {
         [$startDate, $endDate] = $this->getDateRange($year, $period, $monthIndex);
+
         return $this->repo->getLatestTransactions($startDate, $endDate, $excludeCategories);
     }
 
-    public function getTopProducts($year, $period, $monthIndex, $excludeCategories = [])
+    public function getTopProducts(string|int $year, string $period, mixed $monthIndex, array $excludeCategories = []): mixed
     {
         [$startDate, $endDate] = $this->getDateRange($year, $period, $monthIndex);
+
         return $this->repo->getTopProducts($startDate, $endDate, $excludeCategories);
     }
 
-    public function getTransactionDetailData($id)
+    public function getTransactionDetailData(int $id): ?array
     {
         $transaction = $this->repo->getTransactionById($id);
-        if (!$transaction) return null;
+        if (! $transaction) {
+            return null;
+        }
+
         return ['transaction' => $transaction, 'items' => $this->repo->getTransactionDetails($id)];
     }
 
-    public function getCategoryProportions($year, $period, $monthIndex, $excludeCategories = [])
+    public function getCategoryProportions(string|int $year, string $period, mixed $monthIndex, array $excludeCategories = []): mixed
     {
         [$startDate, $endDate] = $this->getDateRange($year, $period, $monthIndex);
+
         return $this->repo->getCategoryProportions($startDate, $endDate, $excludeCategories);
     }
 
-    public function getDailyRevenue($year, $period, $monthIndex)
+    public function getDailyRevenue(string|int $year, string $period, mixed $monthIndex): mixed
     {
         [$startDate, $endDate] = $this->getDateRange($year, $period, $monthIndex);
+
         return $this->repo->getDailyRevenue($startDate, $endDate);
     }
 
-    public function getPeakHours($year, $period, $monthIndex)
+    public function getPeakHours(string|int $year, string $period, mixed $monthIndex): mixed
     {
         [$startDate, $endDate] = $this->getDateRange($year, $period, $monthIndex);
+
         return $this->repo->getPeakHours($startDate, $endDate);
     }
 
-    public function getStackedCategoryTrend($year, $period, $monthIndex)
+    public function getStackedCategoryTrend(string|int $year, string $period, mixed $monthIndex): mixed
     {
         [$startDate, $endDate] = $this->getDateRange($year, $period, $monthIndex);
+
         return $this->repo->getStackedCategoryTrend($startDate, $endDate, $period);
     }
 
-    public function getMarketBasket($year, $period, $monthIndex)
+    public function getMarketBasket(string|int $year, string $period, mixed $monthIndex): mixed
     {
         [$startDate, $endDate] = $this->getDateRange($year, $period, $monthIndex);
+
         return $this->repo->getMarketBasket($startDate, $endDate);
     }
 
-    public function getPeakHourDetail($year, $period, $monthIndex, $dayName, $hour)
+    public function getPeakHourDetail(string|int $year, string $period, mixed $monthIndex, mixed $dayName, mixed $hour): mixed
     {
         [$startDate, $endDate] = $this->getDateRange($year, $period, $monthIndex);
+
         return $this->repo->getPeakHourDrillDown($startDate, $endDate, $dayName, $hour);
     }
 }

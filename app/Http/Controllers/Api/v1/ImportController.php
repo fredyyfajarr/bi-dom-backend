@@ -4,9 +4,10 @@ namespace App\Http\Controllers\Api\v1;
 
 use App\Application\Imports\ImportTransactionsFromCsv;
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use App\Http\Requests\Api\V1\ImportCsvRequest;
 use App\Traits\ApiResponse;
 use Exception;
+use Illuminate\Http\JsonResponse;
 
 class ImportController extends Controller
 {
@@ -14,19 +15,12 @@ class ImportController extends Controller
 
     public function __construct(
         private readonly ImportTransactionsFromCsv $importTransactions,
-    )
-    {
-    }
+    ) {}
 
-    public function uploadCsv(Request $request)
+    public function uploadCsv(ImportCsvRequest $request): JsonResponse
     {
-        $request->validate([
-            'file' => 'nullable|file|mimes:csv,txt|max:5120',
-            'csv_file' => 'nullable|file|mimes:csv,txt|max:5120',
-        ]);
-
-        $uploadedFile = $request->file('file') ?? $request->file('csv_file');
-        if (!$uploadedFile) {
+        $uploadedFile = $request->uploadedCsv();
+        if (! $uploadedFile) {
             return $this->errorResponse('File CSV wajib diunggah.', 422);
         }
 

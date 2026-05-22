@@ -2,34 +2,40 @@
 
 namespace App\Repositories;
 
+use Carbon\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 class DashboardRepository
 {
-    protected $revenueCol = 'transaction_details.subtotal';
-    protected $qtyCol = 'transaction_details.qty';
+    protected string $revenueCol = 'transaction_details.subtotal';
 
-    public function getAvailableYears()
+    protected string $qtyCol = 'transaction_details.qty';
+
+    /**
+     * @return array<int, int>
+     */
+    public function getAvailableYears(): array
     {
         return DB::table('transactions')->selectRaw('YEAR(created_at) as year')->distinct()->orderBy('year', 'desc')->pluck('year')->toArray();
     }
 
-    public function getCategoriesList()
+    public function getCategoriesList(): Collection
     {
         return DB::table('categories')->select('id', 'name')->get();
     }
 
-    public function getTotalTransactionsSince($startDate)
+    public function getTotalTransactionsSince(Carbon $startDate): int
     {
         return DB::table('transactions')->where('created_at', '>=', $startDate)->count('id');
     }
 
-    public function getAllInventories()
+    public function getAllInventories(): Collection
     {
         return DB::table('inventories')->get();
     }
 
-    public function getKpiStats($startDate, $endDate, $excludeCategories = [])
+    public function getKpiStats(Carbon $startDate, Carbon $endDate, array $excludeCategories = []): ?object
     {
         if (empty($excludeCategories)) {
             return DB::table('transactions')
@@ -47,7 +53,7 @@ class DashboardRepository
         }
     }
 
-    public function getChartData($startDate, $endDate, $period)
+    public function getChartData(Carbon $startDate, Carbon $endDate, string $period): Collection
     {
         return DB::table('transaction_details')
             ->join('transactions', 'transaction_details.transaction_id', '=', 'transactions.id')
@@ -61,14 +67,14 @@ class DashboardRepository
             ->groupBy('products.category_id', 'time_unit')->get();
     }
 
-    public function getLatestTransactions($startDate, $endDate, $excludeCategories = [])
+    public function getLatestTransactions(Carbon $startDate, Carbon $endDate, array $excludeCategories = []): Collection
     {
         $query = DB::table('transaction_details')
             ->join('transactions', 'transaction_details.transaction_id', '=', 'transactions.id')
             ->join('products', 'transaction_details.product_id', '=', 'products.id')
             ->whereBetween('transactions.created_at', [$startDate, $endDate]);
 
-        if (!empty($excludeCategories)) {
+        if (! empty($excludeCategories)) {
             $query->whereNotIn('products.category_id', $excludeCategories);
         }
 
@@ -78,14 +84,14 @@ class DashboardRepository
             ->limit(10)->get();
     }
 
-    public function getTopProducts($startDate, $endDate, $excludeCategories = [])
+    public function getTopProducts(Carbon $startDate, Carbon $endDate, array $excludeCategories = []): Collection
     {
         $query = DB::table('transaction_details')
             ->join('transactions', 'transaction_details.transaction_id', '=', 'transactions.id')
             ->join('products', 'transaction_details.product_id', '=', 'products.id')
             ->whereBetween('transactions.created_at', [$startDate, $endDate]);
 
-        if (!empty($excludeCategories)) {
+        if (! empty($excludeCategories)) {
             $query->whereNotIn('products.category_id', $excludeCategories);
         }
 
@@ -95,12 +101,12 @@ class DashboardRepository
             ->limit(5)->get();
     }
 
-    public function getTransactionById($id)
+    public function getTransactionById(int $id): ?object
     {
         return DB::table('transactions')->where('id', $id)->first();
     }
 
-    public function getTransactionDetails($transactionId)
+    public function getTransactionDetails(int $transactionId): Collection
     {
         return DB::table('transaction_details')
             ->join('products', 'transaction_details.product_id', '=', 'products.id')
@@ -109,7 +115,7 @@ class DashboardRepository
             ->get();
     }
 
-    public function getCategoryProportions($startDate, $endDate, $excludeCategories = [])
+    public function getCategoryProportions(Carbon $startDate, Carbon $endDate, array $excludeCategories = []): Collection
     {
         $query = DB::table('transaction_details')
             ->join('transactions', 'transaction_details.transaction_id', '=', 'transactions.id')
@@ -117,7 +123,7 @@ class DashboardRepository
             ->join('categories', 'products.category_id', '=', 'categories.id')
             ->whereBetween('transactions.created_at', [$startDate, $endDate]);
 
-        if (!empty($excludeCategories)) {
+        if (! empty($excludeCategories)) {
             $query->whereNotIn('products.category_id', $excludeCategories);
         }
 
@@ -126,7 +132,7 @@ class DashboardRepository
             ->get();
     }
 
-    public function getDailyRevenue($startDate, $endDate)
+    public function getDailyRevenue(Carbon $startDate, Carbon $endDate): Collection
     {
         return DB::table('transactions')
             ->whereBetween('created_at', [$startDate, $endDate])
@@ -136,7 +142,7 @@ class DashboardRepository
             ->get();
     }
 
-    public function getPeakHours($startDate, $endDate)
+    public function getPeakHours(Carbon $startDate, Carbon $endDate): Collection
     {
         return DB::table('transactions')
             ->whereBetween('created_at', [$startDate, $endDate])
@@ -145,10 +151,10 @@ class DashboardRepository
             ->get();
     }
 
-
-    public function getStackedCategoryTrend($startDate, $endDate, $period)
+    public function getStackedCategoryTrend(Carbon $startDate, Carbon $endDate, string $period): Collection
     {
         $timeUnit = $period === 'year' ? 'MONTH(transactions.created_at)' : 'DAY(transactions.created_at)';
+
         return DB::table('transaction_details')
             ->join('transactions', 'transaction_details.transaction_id', '=', 'transactions.id')
             ->join('products', 'transaction_details.product_id', '=', 'products.id')
@@ -159,12 +165,12 @@ class DashboardRepository
             ->get();
     }
 
-    public function getMarketBasket($startDate, $endDate)
+    public function getMarketBasket(Carbon $startDate, Carbon $endDate): Collection
     {
         return DB::table('transaction_details as td1')
             ->join('transaction_details as td2', function ($join) {
                 $join->on('td1.transaction_id', '=', 'td2.transaction_id')
-                     ->whereRaw('td1.product_id < td2.product_id');
+                    ->whereRaw('td1.product_id < td2.product_id');
             })
             ->join('products as p1', 'td1.product_id', '=', 'p1.id')
             ->join('products as p2', 'td2.product_id', '=', 'p2.id')
@@ -177,33 +183,33 @@ class DashboardRepository
             ->get();
     }
 
-    public function getPeakHourDrillDown($startDate, $endDate, $dayName, $hour)
+    /**
+     * @return array{total_trx: int, top_items: Collection, market_basket: Collection}
+     */
+    public function getPeakHourDrillDown(Carbon $startDate, Carbon $endDate, mixed $dayName, mixed $hour): array
     {
-        // 1. Hitung total transaksi di jam & hari tersebut
         $trxCount = DB::table('transactions')
             ->whereBetween('created_at', [$startDate, $endDate])
             ->whereRaw('DAYNAME(created_at) = ?', [$dayName])
             ->whereRaw('HOUR(created_at) = ?', [$hour])
             ->count('id');
 
-        // 2. Ambil produk paling laku di jam & hari tersebut
         $topItems = DB::table('transaction_details')
             ->join('transactions', 'transaction_details.transaction_id', '=', 'transactions.id')
             ->join('products', 'transaction_details.product_id', '=', 'products.id')
             ->whereBetween('transactions.created_at', [$startDate, $endDate])
             ->whereRaw('DAYNAME(transactions.created_at) = ?', [$dayName])
             ->whereRaw('HOUR(transactions.created_at) = ?', [$hour])
-            ->select('products.name', DB::raw("SUM(transaction_details.qty) as total_qty"))
+            ->select('products.name', DB::raw('SUM(transaction_details.qty) as total_qty'))
             ->groupBy('products.id', 'products.name')
             ->orderByDesc('total_qty')
             ->limit(3)
             ->get();
 
-        // 3. Market Basket KHUSUS untuk jam & hari tersebut!
         $marketBasket = DB::table('transaction_details as td1')
             ->join('transaction_details as td2', function ($join) {
                 $join->on('td1.transaction_id', '=', 'td2.transaction_id')
-                     ->whereRaw('td1.product_id < td2.product_id');
+                    ->whereRaw('td1.product_id < td2.product_id');
             })
             ->join('products as p1', 'td1.product_id', '=', 'p1.id')
             ->join('products as p2', 'td2.product_id', '=', 'p2.id')
@@ -220,7 +226,7 @@ class DashboardRepository
         return [
             'total_trx' => $trxCount,
             'top_items' => $topItems,
-            'market_basket' => $marketBasket
+            'market_basket' => $marketBasket,
         ];
     }
 }

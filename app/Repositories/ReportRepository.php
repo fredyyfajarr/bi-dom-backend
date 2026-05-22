@@ -2,15 +2,18 @@
 
 namespace App\Repositories;
 
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class ReportRepository
 {
-   public function getReportData($startDate)
+    /**
+     * @return array<string, mixed>
+     */
+    public function getReportData(Carbon $startDate): array
     {
-        // 1. Ambil KPI (Langsung dari tabel induk, query menjadi sangat ringan!)
         $kpi = DB::table('transactions')
-            ->where('created_at', '>=', $startDate) // Sesuaikan dengan nama kolom tgl Anda
+            ->where('created_at', '>=', $startDate)
             ->selectRaw('
                 SUM(total_amount) as revenue,
                 SUM(total_cogs) as total_cogs,
@@ -22,7 +25,6 @@ class ReportRepository
         $netProfit = (float) ($kpi->net_profit ?? 0);
         $profitMargin = $revenue > 0 ? ($netProfit / $revenue) * 100 : 0;
 
-        // 2. Ambil Top Items (Tetap seperti sebelumnya)
         $topItems = DB::table('transaction_details')
             ->join('products', 'transaction_details.product_id', '=', 'products.id')
             ->join('transactions', 'transaction_details.transaction_id', '=', 'transactions.id')
@@ -33,11 +35,10 @@ class ReportRepository
             ->limit(5)
             ->get();
 
-        // 3. Ambil Market Basket (Bundling Recommendation)
         $marketBasket = DB::table('transaction_details as td1')
             ->join('transaction_details as td2', function ($join) {
                 $join->on('td1.transaction_id', '=', 'td2.transaction_id')
-                     ->whereRaw('td1.product_id < td2.product_id');
+                    ->whereRaw('td1.product_id < td2.product_id');
             })
             ->join('products as p1', 'td1.product_id', '=', 'p1.id')
             ->join('products as p2', 'td2.product_id', '=', 'p2.id')
@@ -53,14 +54,13 @@ class ReportRepository
             ->limit(5)
             ->get();
 
-        // Lempar semua data ke Service -> Blade
         return [
             'revenue' => $revenue,
             'net_profit' => $netProfit,
             'profit_margin' => round($profitMargin, 1),
             'trx_count' => $kpi->trx_count ?? 0,
             'top_items' => $topItems,
-            'market_basket' => $marketBasket
+            'market_basket' => $marketBasket,
         ];
     }
 }

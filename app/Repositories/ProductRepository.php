@@ -3,16 +3,27 @@
 namespace App\Repositories;
 
 use App\Models\Product;
+use Illuminate\Database\Eloquent\Collection;
 
 class ProductRepository
 {
-    public function getAllProducts()
+    /**
+     * @return Collection<int, Product>
+     */
+    public function getAllProducts(): Collection
     {
-        // Ambil semua produk beserta relasi kategori dan resep
         return Product::with(['category', 'materials'])->get();
     }
 
-    public function createProduct(array $data)
+    public function findProduct(int $id): Product
+    {
+        return Product::with(['category', 'materials'])->findOrFail($id);
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    public function createProduct(array $data): Product
     {
         return Product::create([
             'category_id' => $data['category_id'],
@@ -21,7 +32,10 @@ class ProductRepository
         ]);
     }
 
-    public function updateProduct($id, array $data)
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    public function updateProduct(int $id, array $data): Product
     {
         $product = Product::findOrFail($id);
 
@@ -34,9 +48,21 @@ class ProductRepository
         return $product;
     }
 
-    public function syncMaterials(Product $product, array $syncData)
+    /**
+     * @param  array<int, array<string, mixed>>  $syncData
+     */
+    public function syncMaterials(Product $product, array $syncData): void
     {
-        // Menyimpan relasi ke tabel pivot (product_inventory)
         $product->materials()->sync($syncData);
+    }
+
+    public function detachMaterials(Product $product): void
+    {
+        $product->materials()->detach();
+    }
+
+    public function deleteProduct(Product $product): void
+    {
+        $product->delete();
     }
 }

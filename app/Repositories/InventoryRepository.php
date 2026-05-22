@@ -3,27 +3,31 @@
 namespace App\Repositories;
 
 use App\Models\Inventory;
+use Illuminate\Database\Eloquent\Collection;
 
 class InventoryRepository
 {
-    // Fungsi untuk mengambil semua data
-    public function getAllItems()
+    /**
+     * @return Collection<int, Inventory>
+     */
+    public function getAllItems(): Collection
     {
         return Inventory::all();
     }
 
-    // Fungsi BARU untuk menambah stok
-    public function addStock($id, $addedQuantity)
+    public function addStock(int $id, float $addedQuantity): Inventory
     {
         $item = Inventory::findOrFail($id);
 
-        // Menggunakan fitur bawaan Laravel untuk menambah angka
         $item->increment('current_stock', $addedQuantity);
 
-        return $item->fresh(); // Mengembalikan data yang sudah terupdate
+        return $item->fresh();
     }
 
-    public function createItem(array $data)
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    public function createItem(array $data): Inventory
     {
         return Inventory::create($data);
     }
