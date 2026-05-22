@@ -1,59 +1,311 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# BI DOM Backend
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Backend REST API untuk sistem **Business Intelligence DOM Social Hub**. Repository ini menangani autentikasi, import data transaksi CSV, dashboard analytics, invoice, inventory forecasting, manajemen produk dan resep, serta export laporan PDF.
 
-## About Laravel
+Project ini dirancang sebagai backend untuk repository frontend: [`bi-dom-frontend`](https://github.com/fredyyfajarr/bi-dom-frontend).
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+---
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Ringkasan Fitur
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- **Authentication & Authorization**
+  - Login menggunakan Laravel Sanctum.
+  - Role user: `manager` dan `kasir`.
+  - Proteksi endpoint menggunakan middleware auth dan role.
 
-## Learning Laravel
+- **Dashboard Business Intelligence**
+  - KPI revenue, total COGS, net profit, profit margin, dan jumlah transaksi.
+  - Grafik revenue tahunan dan bulanan berdasarkan kategori.
+  - Data transaksi terbaru dan detail transaksi.
+  - Top product analysis.
+  - Donut chart komposisi kategori.
+  - Advanced analytics: daily revenue, peak hour, stacked category trend, dan market basket analysis.
+  - Drill-down detail jam ramai.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+- **Import Data Transaksi**
+  - Upload file CSV dari data POS.
+  - Mendukung data itemized per produk dalam satu struk.
+  - Data import langsung diproses ke transaksi dan detail transaksi.
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+- **Invoice / Transaction Ledger**
+  - Menyediakan daftar transaksi untuk kebutuhan kasir dan manager.
+  - Mendukung pencarian, filter tanggal, sorting, dan pagination dari frontend.
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+- **Product & Recipe Management**
+  - CRUD produk.
+  - Penyimpanan resep / material yang digunakan oleh setiap produk.
 
-## Agentic Development
+- **Inventory Forecasting**
+  - Monitoring stok bahan baku.
+  - Alert stok kritis.
+  - Estimasi kebutuhan stok berbasis transaksi 30 hari terakhir untuk prediksi 7 hari ke depan.
+  - Update stok masuk secara manual.
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+- **PDF Report Export**
+  - Export laporan PDF menggunakan DomPDF.
 
-```bash
-composer require laravel/boost --dev
+---
 
-php artisan boost:install
+## Tech Stack
+
+- PHP `^8.3`
+- Laravel `^13.0`
+- Laravel Sanctum
+- MySQL
+- DomPDF
+- Vite
+- Tailwind CSS
+
+---
+
+## Struktur Endpoint Utama
+
+Base URL lokal:
+
+```txt
+http://127.0.0.1:8000/api/v1
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+### Public Route
 
-## Contributing
+| Method | Endpoint | Keterangan |
+|---|---|---|
+| POST | `/login` | Login user dan generate token Sanctum |
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### Protected Route: Manager & Kasir
 
-## Code of Conduct
+| Method | Endpoint | Keterangan |
+|---|---|---|
+| GET | `/user` | Mengambil data user aktif |
+| POST | `/logout` | Logout dan hapus token aktif |
+| POST | `/import` | Upload CSV transaksi |
+| POST | `/import-csv` | Alias upload CSV transaksi |
+| GET | `/invoices` | Daftar invoice / transaksi |
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### Manager Only
 
-## Security Vulnerabilities
+| Method | Endpoint | Keterangan |
+|---|---|---|
+| GET | `/products` | List produk |
+| POST | `/products` | Tambah produk dan resep |
+| GET | `/products/{id}` | Detail produk |
+| PUT/PATCH | `/products/{id}` | Update produk dan resep |
+| DELETE | `/products/{id}` | Hapus produk |
+| GET | `/dashboard/available-years` | Tahun transaksi yang tersedia |
+| GET | `/dashboard/categories-list` | List kategori |
+| GET | `/dashboard/kpi` | Data KPI dashboard |
+| GET | `/dashboard/charts` | Data grafik sales/category |
+| GET | `/dashboard/transactions` | Transaksi terbaru |
+| GET | `/dashboard/transactions/{id}` | Detail transaksi |
+| GET | `/dashboard/top-products` | Produk terlaris |
+| GET | `/dashboard/inventory-alerts` | Alert stok rendah |
+| GET | `/dashboard/donut-chart` | Komposisi kategori |
+| GET | `/dashboard/advanced-analytics` | Daily revenue, peak hour, stacked trend, market basket |
+| GET | `/dashboard/peak-hour-detail` | Drill-down jam ramai |
+| GET | `/inventory/alerts` | Alert dan forecast inventory |
+| GET | `/inventory/list` | List inventory |
+| POST | `/inventory/update-stock` | Tambah stok bahan baku |
+| POST | `/inventory/items` | Tambah master item inventory |
+| GET | `/reports/export-pdf` | Export laporan PDF |
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+---
 
-## License
+## Format CSV Import
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
-# bi-dom-backend
+File CSV harus menggunakan format itemized. Artinya, jika satu struk berisi beberapa menu, setiap menu ditulis sebagai baris terpisah dengan `receipt_no` yang sama.
+
+Header yang dibutuhkan:
+
+```csv
+receipt_no,trx_date,product_name,qty,subtotal
+```
+
+Contoh:
+
+```csv
+receipt_no,trx_date,product_name,qty,subtotal
+INV-001,2026-04-28 10:30,Aren Latte,2,40000
+INV-001,2026-04-28 10:30,Mix Platter,1,35000
+INV-002,2026-04-28 11:15,Lychee Tea,1,20000
+```
+
+Catatan:
+
+- `subtotal` adalah total harga per item, yaitu harga satuan x qty.
+- Jangan gunakan titik atau koma sebagai pemisah ribuan pada kolom nominal.
+
+---
+
+## Prasyarat
+
+Pastikan sudah terinstall:
+
+- PHP 8.3 atau lebih baru
+- Composer
+- MySQL / MariaDB
+- Node.js dan npm
+
+---
+
+## Instalasi Lokal
+
+Clone repository:
+
+```bash
+git clone https://github.com/fredyyfajarr/bi-dom-backend.git
+cd bi-dom-backend
+```
+
+Install dependency PHP:
+
+```bash
+composer install
+```
+
+Buat file environment:
+
+```bash
+cp .env.example .env
+```
+
+Generate app key:
+
+```bash
+php artisan key:generate
+```
+
+Atur konfigurasi database di `.env`:
+
+```env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=dom_social_hub
+DB_USERNAME=root
+DB_PASSWORD=
+```
+
+Jalankan migration dan seeder:
+
+```bash
+php artisan migrate --seed
+```
+
+Install dependency frontend asset Laravel:
+
+```bash
+npm install
+```
+
+Build asset:
+
+```bash
+npm run build
+```
+
+Jalankan server Laravel:
+
+```bash
+php artisan serve
+```
+
+Server berjalan di:
+
+```txt
+http://127.0.0.1:8000
+```
+
+---
+
+## Akun Demo Seeder
+
+| Role | Email | Password |
+|---|---|---|
+| Manager | `manager@dom.com` | `password123` |
+| Kasir | `kasir@dom.com` | `password123` |
+
+> Untuk production, ganti password default dan jangan gunakan credential demo.
+
+---
+
+## Command Berguna
+
+Menjalankan development server Laravel:
+
+```bash
+php artisan serve
+```
+
+Menjalankan queue worker:
+
+```bash
+php artisan queue:listen
+```
+
+Menjalankan test:
+
+```bash
+composer test
+```
+
+Menjalankan Laravel Pint:
+
+```bash
+./vendor/bin/pint
+```
+
+Menjalankan mode development gabungan sesuai script Composer:
+
+```bash
+composer run dev
+```
+
+---
+
+## Integrasi Frontend
+
+Frontend membaca API dari URL:
+
+```txt
+http://127.0.0.1:8000/api/v1
+```
+
+Pastikan repository frontend mengarah ke URL backend yang sama melalui environment:
+
+```env
+NEXT_PUBLIC_API_URL=http://127.0.0.1:8000/api/v1
+```
+
+---
+
+## Troubleshooting
+
+### 401 Unauthorized
+
+Kemungkinan token belum dikirim atau user belum login. Pastikan frontend menyimpan token dan mengirim header:
+
+```txt
+Authorization: Bearer <token>
+```
+
+### 403 Forbidden
+
+User login tidak memiliki role `manager`. Beberapa endpoint seperti dashboard, product, inventory, dan report hanya untuk manager.
+
+### Database error
+
+Pastikan database `dom_social_hub` sudah dibuat dan `.env` sudah sesuai, lalu jalankan:
+
+```bash
+php artisan migrate --seed
+```
+
+### Data dashboard kosong
+
+Jalankan seeder atau upload CSV transaksi terlebih dahulu.
+
+---
+
+## Related Repository
+
+- Frontend: [`bi-dom-frontend`](https://github.com/fredyyfajarr/bi-dom-frontend)
