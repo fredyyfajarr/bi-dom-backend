@@ -51,8 +51,9 @@ Project ini dirancang sebagai backend untuk repository frontend: [`bi-dom-fronte
 - PHP `^8.3`
 - Laravel `^13.0`
 - Laravel Sanctum
-- MySQL
+- MySQL 8 / MariaDB
 - DomPDF
+- Composer
 - Vite
 - Tailwind CSS
 
@@ -129,6 +130,12 @@ INV-001,2026-04-28 10:30,Mix Platter,1,35000
 INV-002,2026-04-28 11:15,Lychee Tea,1,20000
 ```
 
+Contoh file import tersedia di:
+
+```txt
+database/samples/import-transactions-2026-05-22.csv
+```
+
 Catatan:
 
 - `subtotal` adalah total harga per item, yaitu harga satuan x qty.
@@ -143,7 +150,7 @@ Pastikan sudah terinstall:
 - PHP 8.3 atau lebih baru
 - Composer
 - MySQL / MariaDB
-- Node.js dan npm
+- Node.js dan npm jika ingin build asset Laravel
 
 ---
 
@@ -165,7 +172,7 @@ composer install
 Buat file environment:
 
 ```bash
-cp .env.example .env
+copy .env.example .env
 ```
 
 Generate app key:
@@ -185,35 +192,36 @@ DB_USERNAME=root
 DB_PASSWORD=
 ```
 
-Jalankan migration dan seeder:
+Buat database `dom_social_hub`, lalu jalankan migration dan seeder:
 
 ```bash
 php artisan migrate --seed
 ```
 
-Install dependency frontend asset Laravel:
+---
+
+## Menjalankan Local Development
+
+Jalankan service Laravel di terminal terpisah:
 
 ```bash
-npm install
+php artisan serve --host=127.0.0.1 --port=8000
+php artisan queue:work
+php artisan schedule:work
 ```
 
-Build asset:
+`php artisan serve` hanya server HTTP development. Queue dan scheduler tidak otomatis berjalan saat web dibuka, jadi keduanya harus dijalankan sebagai proses terpisah.
 
-```bash
-npm run build
-```
+Flow local development:
 
-Jalankan server Laravel:
+1. User membuka frontend di `http://localhost:3000`.
+2. Frontend memanggil API Laravel di `http://127.0.0.1:8000/api/v1`.
+3. Laravel memproses request dan membaca/menulis data ke MySQL.
+4. Proses berat sebaiknya dikirim sebagai job ke queue agar request tetap cepat.
+5. `php artisan queue:work` mengambil dan menjalankan job dari antrean.
+6. `php artisan schedule:work` menjalankan task terjadwal selama development.
 
-```bash
-php artisan serve
-```
-
-Server berjalan di:
-
-```txt
-http://127.0.0.1:8000
-```
+Di VS Code, flow ini bisa dijalankan lewat task yang menyalakan frontend, Laravel serve, queue worker, dan scheduler sekaligus.
 
 ---
 
@@ -233,31 +241,31 @@ http://127.0.0.1:8000
 Menjalankan development server Laravel:
 
 ```bash
-php artisan serve
+php artisan serve --host=127.0.0.1 --port=8000
 ```
 
 Menjalankan queue worker:
 
 ```bash
-php artisan queue:listen
+php artisan queue:work
+```
+
+Menjalankan scheduler worker:
+
+```bash
+php artisan schedule:work
 ```
 
 Menjalankan test:
 
 ```bash
-composer test
+php artisan test
 ```
 
 Menjalankan Laravel Pint:
 
 ```bash
 ./vendor/bin/pint
-```
-
-Menjalankan mode development gabungan sesuai script Composer:
-
-```bash
-composer run dev
 ```
 
 ---
@@ -275,6 +283,16 @@ Pastikan repository frontend mengarah ke URL backend yang sama melalui environme
 ```env
 NEXT_PUBLIC_API_URL=http://127.0.0.1:8000/api/v1
 ```
+
+---
+
+## Deploy
+
+Untuk production, jangan memakai `php artisan serve`. Gunakan web server atau platform PHP production, queue worker yang dikelola process manager, dan scheduler via cron.
+
+Jika frontend memakai Vercel, backend tetap perlu host API terpisah seperti Railway, Render, Fly.io, VPS, atau Laravel Cloud.
+
+Supabase bisa dipakai sebagai database jika project dimigrasikan ke PostgreSQL. Supabase bukan MySQL, jadi query MySQL-specific perlu dicek sebelum migrasi.
 
 ---
 
