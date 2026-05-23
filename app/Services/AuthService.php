@@ -24,14 +24,12 @@ class AuthService
             throw new Exception('Kredensial tidak valid. Silakan cek email dan password Anda.', 401);
         }
 
-        // Authenticate via session (stateful) — sets HttpOnly cookie automatically
-        Auth::login($user);
-
-        // Regenerate session to prevent fixation attacks
-        request()->session()->regenerate();
+        // Generate an API token instead of using stateful sessions
+        $token = $user->createToken('auth_token')->plainTextToken;
 
         return [
             'user' => $user,
+            'token' => $token,
         ];
     }
 }

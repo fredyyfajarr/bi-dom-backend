@@ -15,11 +15,6 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias(['role' => \App\Http\Middleware\CheckRole::class]);
 
-        // Enable Sanctum stateful cookie authentication for SPA
-        $middleware->statefulApi();
-        $middleware->validateCsrfTokens(except: [
-            'api/*',
-        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
