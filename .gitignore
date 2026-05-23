@@ -26,5 +26,7 @@ Homestead.yaml
 Thumbs.db
 
 **/caddy
+
+**/caddy
 frankenphp
 frankenphp-worker.php
