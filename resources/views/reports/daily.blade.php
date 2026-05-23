@@ -114,13 +114,7 @@
         <table width="100%">
             <tr>
                 <td style="vertical-align: middle;">
-                    <!-- Cek langsung apakah file fisik ada di dalam folder public/ -->
-                    @if (file_exists(public_path('dom-logo.png')))
-                        <img src="{{ public_path('dom-logo.png') }}" alt="DOM Social Hub Logo"
-                            style="height: 50px; margin-bottom: 5px;">
-                    @else
-                        <div class="brand">DOM_SOCIAL_HUB</div>
-                    @endif
+                    <div class="brand">DOM_SOCIAL_HUB</div>
                     <div class="subtitle">Central Intelligence Report</div>
                 </td>
                 <td align="right" style="vertical-align: top;">

@@ -23,6 +23,7 @@ class ReportController extends Controller
                 ->header('Content-Type', 'application/pdf')
                 ->header('Content-Disposition', 'attachment; filename="DOM_Report_Last_'.$days.'_Days.pdf"');
         } catch (Exception $e) {
+            \Illuminate\Support\Facades\Log::error('PDF Export Error: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
             return response()->json([
                 'success' => false,
                 'message' => 'Gagal mencetak PDF: '.$e->getMessage(),
