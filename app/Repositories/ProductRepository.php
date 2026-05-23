@@ -63,6 +63,15 @@ class ProductRepository
 
     public function deleteProduct(Product $product): void
     {
-        $product->delete();
+        // If product has transaction history, soft delete to preserve BI data
+        $hasHistory = \Illuminate\Support\Facades\DB::table('transaction_details')
+            ->where('product_id', $product->id)
+            ->exists();
+
+        if ($hasHistory) {
+            $product->delete(); // SoftDeletes trait handles this as soft delete
+        } else {
+            $product->forceDelete(); // No history, safe to hard delete
+        }
     }
 }

@@ -16,11 +16,18 @@ class ReportExportRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [];
+        return [
+            'days' => 'sometimes|integer|min:1|max:365',
+        ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->merge($this->query());
     }
 
     public function days(): int
     {
-        return (int) $this->query('days', 30);
+        return (int) ($this->validated()['days'] ?? 30);
     }
 }

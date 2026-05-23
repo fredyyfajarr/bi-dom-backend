@@ -12,13 +12,24 @@ class DashboardFilterRequest extends FormRequest
     }
 
     /**
-     * Query parameters remain permissive to preserve the current dashboard API.
-     *
      * @return array<string, string>
      */
     public function rules(): array
     {
-        return [];
+        return [
+            'year'       => 'sometimes|integer|min:2000|max:2099',
+            'period'     => 'sometimes|string|in:year,month',
+            'monthIndex' => 'sometimes|nullable|integer|min:0|max:11',
+            'exclude'    => 'sometimes|nullable|string',
+        ];
+    }
+
+    /**
+     * For GET requests, merge query parameters so they can be validated.
+     */
+    protected function prepareForValidation(): void
+    {
+        $this->merge($this->query());
     }
 
     /**
@@ -26,12 +37,13 @@ class DashboardFilterRequest extends FormRequest
      */
     public function filters(): array
     {
-        $excludeRaw = (string) $this->query('exclude', '');
+        $safe = $this->validated();
+        $excludeRaw = (string) ($safe['exclude'] ?? '');
 
         return [
-            (string) $this->query('year', date('Y')),
-            (string) $this->query('period', 'year'),
-            $this->query('monthIndex'),
+            (string) ($safe['year'] ?? date('Y')),
+            (string) ($safe['period'] ?? 'year'),
+            $safe['monthIndex'] ?? null,
             $excludeRaw ? array_values(array_filter(explode(',', $excludeRaw))) : [],
         ];
     }

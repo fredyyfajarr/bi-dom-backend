@@ -17,10 +17,12 @@ class StoreProductRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => 'required|string',
-            'category_id' => 'required|integer',
-            'price' => 'required|numeric',
-            'materials' => 'array',
+            'name'                     => 'required|string|max:255',
+            'category_id'              => 'required|integer|exists:categories,id',
+            'price'                    => 'required|numeric|min:0',
+            'materials'                => 'nullable|array',
+            'materials.*.inventory_id' => 'required_with:materials|integer|exists:inventories,id',
+            'materials.*.usage_qty'    => 'required_with:materials|numeric|min:0.01',
         ];
     }
 

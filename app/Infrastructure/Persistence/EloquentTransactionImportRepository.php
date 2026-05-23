@@ -12,6 +12,18 @@ class EloquentTransactionImportRepository implements TransactionImportRepository
 {
     private const INSERT_CHUNK_SIZE = 500;
 
+    public function getExistingReceiptNos(array $receiptNos): array
+    {
+        if (empty($receiptNos)) {
+            return [];
+        }
+
+        return DB::table('transactions')
+            ->whereIn('receipt_no', $receiptNos)
+            ->pluck('receipt_no')
+            ->all();
+    }
+
     public function saveSimpleTransactions(array $transactions): int
     {
         $now = now();
@@ -41,7 +53,7 @@ class EloquentTransactionImportRepository implements TransactionImportRepository
 
         $products = DB::table('products')
             ->whereIn('name', $productNames)
-            ->get(['id', 'name', 'cogs'])
+            ->get(['id', 'name', 'price', 'cogs'])
             ->keyBy('name');
 
         $missingProducts = array_values(array_diff($productNames, $products->keys()->all()));
@@ -98,6 +110,8 @@ class EloquentTransactionImportRepository implements TransactionImportRepository
                     $detailRows[] = [
                         'transaction_id' => $transactionId,
                         'product_id' => $product->id,
+                        'product_name' => $product->name,
+                        'product_price' => $product->price,
                         'qty' => $qty,
                         'subtotal' => (float) $item['subtotal'],
                         'subtotal_cogs' => ((float) $product->cogs) * $qty,

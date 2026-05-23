@@ -12,14 +12,25 @@ class InvoiceIndexRequest extends FormRequest
     }
 
     /**
-     * Keep invoice query validation permissive because the service already
-     * sanitizes sorting and filtering defaults used by the current API.
-     *
      * @return array<string, string>
      */
     public function rules(): array
     {
-        return [];
+        return [
+            'search'      => 'sometimes|nullable|string|max:255',
+            'sort_by'     => 'sometimes|string|in:created_at,trx_date,total_amount,receipt_no',
+            'sort_dir'    => 'sometimes|string|in:asc,desc',
+            'filter_date' => 'sometimes|string',
+            'per_page'    => 'sometimes|integer|min:1|max:100',
+        ];
+    }
+
+    /**
+     * For GET requests, merge query parameters so they can be validated.
+     */
+    protected function prepareForValidation(): void
+    {
+        $this->merge($this->query());
     }
 
     /**
@@ -27,12 +38,14 @@ class InvoiceIndexRequest extends FormRequest
      */
     public function filters(): array
     {
+        $safe = $this->validated();
+
         return [
-            'search' => (string) $this->query('search', ''),
-            'sort_by' => (string) $this->query('sort_by', 'created_at'),
-            'sort_dir' => (string) $this->query('sort_dir', 'desc'),
-            'filter_date' => (string) $this->query('filter_date', 'all'),
-            'per_page' => (int) $this->query('per_page', 15),
+            'search'      => (string) ($safe['search'] ?? ''),
+            'sort_by'     => (string) ($safe['sort_by'] ?? 'trx_date'),
+            'sort_dir'    => (string) ($safe['sort_dir'] ?? 'desc'),
+            'filter_date' => (string) ($safe['filter_date'] ?? 'all'),
+            'per_page'    => (int) ($safe['per_page'] ?? 15),
         ];
     }
 }

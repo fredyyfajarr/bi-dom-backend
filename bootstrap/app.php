@@ -13,7 +13,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->alias(['role' => \App\Http\Middleware\CheckRole::class,]);
+        $middleware->alias(['role' => \App\Http\Middleware\CheckRole::class]);
+
+        // Enable Sanctum stateful cookie authentication for SPA
+        $middleware->statefulApi();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

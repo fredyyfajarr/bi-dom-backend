@@ -27,13 +27,20 @@ class ImportController extends Controller
         try {
             $result = $this->importTransactions->execute($uploadedFile->getRealPath());
 
+            $message = "{$result->transactionCount} transaksi berhasil diproses.";
+            if ($result->skippedCount > 0) {
+                $message .= " {$result->skippedCount} transaksi di-skip (receipt sudah ada).";
+            }
+
             return $this->successResponse(
                 [
                     'format' => $result->format,
                     'transactions' => $result->transactionCount,
                     'details' => $result->detailCount,
+                    'skipped_count' => $result->skippedCount,
+                    'skipped_receipts' => $result->skippedReceipts,
                 ],
-                "File diterima. {$result->transactionCount} transaksi berhasil diproses. Dashboard telah disegarkan!"
+                $message,
             );
         } catch (Exception $e) {
             return $this->errorResponse($e->getMessage(), 400);

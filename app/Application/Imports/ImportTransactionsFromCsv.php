@@ -55,9 +55,32 @@ class ImportTransactionsFromCsv
             throw new Exception('Tidak ada transaksi valid di CSV.');
         }
 
-        $count = $this->repository->saveSimpleTransactions($transactions);
+        // Filter out duplicate receipts
+        $allReceipts = array_column($transactions, 'receipt_no');
+        $existingReceipts = $this->repository->getExistingReceiptNos($allReceipts);
 
-        return new CsvTransactionImportResult($count, 0, 'simple');
+        $skippedReceipts = [];
+        $filteredTransactions = [];
+        foreach ($transactions as $trx) {
+            if (in_array($trx['receipt_no'], $existingReceipts, true)) {
+                $skippedReceipts[] = $trx['receipt_no'];
+            } else {
+                $filteredTransactions[] = $trx;
+            }
+        }
+
+        $insertedCount = 0;
+        if (!empty($filteredTransactions)) {
+            $insertedCount = $this->repository->saveSimpleTransactions($filteredTransactions);
+        }
+
+        return new CsvTransactionImportResult(
+            $insertedCount,
+            0,
+            'simple',
+            count($skippedReceipts),
+            $skippedReceipts,
+        );
     }
 
     private function importItemizedRows(array $header, array $rows): CsvTransactionImportResult
@@ -89,10 +112,32 @@ class ImportTransactionsFromCsv
             throw new Exception('Tidak ada detail transaksi valid di CSV.');
         }
 
-        $detailCount = array_sum(array_map(fn ($transaction) => count($transaction['items']), $transactions));
-        $transactionCount = $this->repository->saveItemizedTransactions(array_values($transactions));
+        // Filter out duplicate receipts
+        $allReceipts = array_keys($transactions);
+        $existingReceipts = $this->repository->getExistingReceiptNos($allReceipts);
 
-        return new CsvTransactionImportResult($transactionCount, $detailCount, 'itemized');
+        $skippedReceipts = [];
+        foreach ($existingReceipts as $receipt) {
+            if (isset($transactions[$receipt])) {
+                $skippedReceipts[] = $receipt;
+                unset($transactions[$receipt]);
+            }
+        }
+
+        $insertedCount = 0;
+        $detailCount = 0;
+        if (!empty($transactions)) {
+            $detailCount = array_sum(array_map(fn ($transaction) => count($transaction['items']), $transactions));
+            $insertedCount = $this->repository->saveItemizedTransactions(array_values($transactions));
+        }
+
+        return new CsvTransactionImportResult(
+            $insertedCount,
+            $detailCount,
+            'itemized',
+            count($skippedReceipts),
+            $skippedReceipts,
+        );
     }
 
     private function readCsvRows(string $filePath): array

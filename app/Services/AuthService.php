@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\User;
 use App\Repositories\AuthRepository;
 use Exception;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 
 class AuthService
@@ -13,7 +14,7 @@ class AuthService
 
     /**
      * @param  array{email: string, password: string}  $credentials
-     * @return array{user: User, token: string}
+     * @return array{user: User}
      */
     public function login(array $credentials): array
     {
@@ -23,11 +24,14 @@ class AuthService
             throw new Exception('Kredensial tidak valid. Silakan cek email dan password Anda.', 401);
         }
 
-        $token = $user->createToken('auth_token')->plainTextToken;
+        // Authenticate via session (stateful) — sets HttpOnly cookie automatically
+        Auth::login($user);
+
+        // Regenerate session to prevent fixation attacks
+        request()->session()->regenerate();
 
         return [
             'user' => $user,
-            'token' => $token,
         ];
     }
 }

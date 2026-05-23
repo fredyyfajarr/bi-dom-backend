@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Table('transactions')]
-#[Fillable(['receipt_no', 'trx_date', 'total_amount'])]
+#[Fillable(['receipt_no', 'trx_date', 'total_amount', 'total_cogs', 'net_profit'])]
 class Transaction extends Model
 {
     public function details(): HasMany
