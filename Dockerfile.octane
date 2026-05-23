@@ -22,6 +22,7 @@ COPY . .
 
 RUN composer dump-autoload --optimize \
     && php artisan package:discover --ansi \
+    && php artisan octane:install --server=frankenphp -n \
     && mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache \
     && chmod -R ug+rwx storage bootstrap/cache
 
