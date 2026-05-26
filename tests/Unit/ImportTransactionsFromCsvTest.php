@@ -74,4 +74,9 @@ class FakeTransactionImportRepository implements TransactionImportRepositoryInte
 
         return count($transactions);
     }
+
+    public function getExistingReceiptNos(array $receiptNos): array
+    {
+        return [];
+    }
 }

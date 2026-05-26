@@ -13,7 +13,7 @@ class ReportRepository
     public function getReportData(Carbon $startDate): array
     {
         $kpi = DB::table('transactions')
-            ->where('created_at', '>=', $startDate)
+            ->where('trx_date', '>=', $startDate)
             ->selectRaw('
                 SUM(total_amount) as revenue,
                 SUM(total_cogs) as total_cogs,
@@ -26,11 +26,14 @@ class ReportRepository
         $profitMargin = $revenue > 0 ? ($netProfit / $revenue) * 100 : 0;
 
         $topItems = DB::table('transaction_details')
-            ->join('products', 'transaction_details.product_id', '=', 'products.id')
+            ->leftJoin('products', 'transaction_details.product_id', '=', 'products.id')
             ->join('transactions', 'transaction_details.transaction_id', '=', 'transactions.id')
-            ->where('transactions.created_at', '>=', $startDate)
-            ->select('products.name', DB::raw('SUM(transaction_details.qty) as total_qty'))
-            ->groupBy('products.id', 'products.name')
+            ->where('transactions.trx_date', '>=', $startDate)
+            ->select(
+                DB::raw('COALESCE(products.name, transaction_details.product_name) as name'),
+                DB::raw('SUM(transaction_details.qty) as total_qty')
+            )
+            ->groupBy('transaction_details.product_id', DB::raw('COALESCE(products.name, transaction_details.product_name)'))
             ->orderBy('total_qty', 'desc')
             ->limit(5)
             ->get();
@@ -40,13 +43,13 @@ class ReportRepository
                 $join->on('td1.transaction_id', '=', 'td2.transaction_id')
                     ->whereRaw('td1.product_id < td2.product_id');
             })
-            ->join('products as p1', 'td1.product_id', '=', 'p1.id')
-            ->join('products as p2', 'td2.product_id', '=', 'p2.id')
+            ->leftJoin('products as p1', 'td1.product_id', '=', 'p1.id')
+            ->leftJoin('products as p2', 'td2.product_id', '=', 'p2.id')
             ->join('transactions as trx', 'td1.transaction_id', '=', 'trx.id')
-            ->where('trx.created_at', '>=', $startDate)
+            ->where('trx.trx_date', '>=', $startDate)
             ->select(
-                'p1.name as product_a',
-                'p2.name as product_b',
+                DB::raw('COALESCE(p1.name, td1.product_name) as product_a'),
+                DB::raw('COALESCE(p2.name, td2.product_name) as product_b'),
                 DB::raw('COUNT(DISTINCT td1.transaction_id) as times_bought_together')
             )
             ->groupBy('product_a', 'product_b')
