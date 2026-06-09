@@ -1,4 +1,4 @@
-﻿# Bi-Dom Backend
+# Bi-Dom Backend
 
 The backend application managing the Bi-Dom system with real-time broadcasting.
 
@@ -14,4 +14,5 @@ The backend application managing the Bi-Dom system with real-time broadcasting.
 - Vite
 - Tailwind CSS
 
-Copyright build dari nama saya Fredy Fajar Adi Putra
+Copyright &copy; 2026 Fredy Fajar Adi Putra. All Rights Reserved.
+
