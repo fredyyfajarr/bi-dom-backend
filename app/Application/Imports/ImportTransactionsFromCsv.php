@@ -32,7 +32,7 @@ class ImportTransactionsFromCsv
             return $this->importSimpleRows($header, $rows);
         }
 
-        throw new Exception('Header CSV tidak dikenali. Gunakan format receipt_no,trx_date,total_amount atau receipt_no,trx_date,product_name,qty,subtotal.');
+        throw new Exception('Header CSV tidak dikenali. Gunakan format receipt_no,trx_date,total_amount atau receipt_no,trx_date,product_name,qty,subtotal. Kolom payment_method boleh ditambahkan dan opsional.');
     }
 
     private function importSimpleRows(array $header, array $rows): CsvTransactionImportResult

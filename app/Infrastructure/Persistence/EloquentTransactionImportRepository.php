@@ -141,7 +141,10 @@ class EloquentTransactionImportRepository implements TransactionImportRepository
             foreach ($inventoryUsage as $inventoryId => $usedQuantity) {
                 DB::table('inventories')
                     ->where('id', $inventoryId)
-                    ->decrement('current_stock', $usedQuantity, ['updated_at' => $now]);
+                    ->update([
+                        'current_stock' => DB::raw('GREATEST(current_stock - '.$usedQuantity.', 0)'),
+                        'updated_at' => $now,
+                    ]);
             }
         });
         Cache::flush();
