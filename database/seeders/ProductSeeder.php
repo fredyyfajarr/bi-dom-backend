@@ -110,10 +110,13 @@ class ProductSeeder extends Seeder
             'Kopi Susu DOM',
             'Caramel Macchiato',
             'Zafeer Milktea',
+            'Matcha Latte',
             'Ayam Chili Padi',
             'Nasi Goreng DOM',
             'Spaghetti Aglio Olio',
             'Mix Platter',
+            'French Fries',
+            'ESPRESSO',
         ])->delete();
 
         Category::whereIn('name', ['Snacks'])->delete();
