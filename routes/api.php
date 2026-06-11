@@ -41,6 +41,7 @@ Route::prefix('v1')->group(function () {
         // MODULE: INVOICES (Lihat Daftar Transaksi)
         Route::prefix('invoices')->group(function () {
             Route::get('/', [InvoiceController::class, 'index']);
+            Route::get('/{id}', [InvoiceController::class, 'show']);
         });
 
 

@@ -28,4 +28,21 @@ class InvoiceController extends Controller
             'data' => $invoices,
         ]);
     }
+
+    public function show(int $id): JsonResponse
+    {
+        $invoice = $this->service->getInvoiceDetail($id);
+
+        if (! $invoice) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invoice not found',
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $invoice,
+        ]);
+    }
 }

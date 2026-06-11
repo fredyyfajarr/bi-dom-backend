@@ -29,6 +29,7 @@ class ProductRepository
             'category_id' => $data['category_id'],
             'name' => $data['name'],
             'price' => $data['price'],
+            'cogs' => $data['cogs'],
         ]);
     }
 
@@ -43,6 +44,7 @@ class ProductRepository
             'category_id' => $data['category_id'],
             'name' => $data['name'],
             'price' => $data['price'],
+            'cogs' => $data['cogs'],
         ]);
 
         return $product;

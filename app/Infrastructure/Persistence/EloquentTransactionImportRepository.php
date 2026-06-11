@@ -30,6 +30,7 @@ class EloquentTransactionImportRepository implements TransactionImportRepository
         $rows = array_map(fn ($transaction) => [
             'receipt_no' => $transaction['receipt_no'],
             'trx_date' => $transaction['trx_date'],
+            'payment_method' => $transaction['payment_method'] ?? 'CASH',
             'total_amount' => $transaction['total_amount'],
             'total_cogs' => 0,
             'net_profit' => $transaction['total_amount'],
@@ -80,6 +81,7 @@ class EloquentTransactionImportRepository implements TransactionImportRepository
                 $transactionRows[] = [
                     'receipt_no' => $transaction['receipt_no'],
                     'trx_date' => $trxDate,
+                    'payment_method' => $transaction['payment_method'] ?? 'CASH',
                     'total_amount' => $totalAmount,
                     'total_cogs' => $totalCogs,
                     'net_profit' => $totalAmount - $totalCogs,
@@ -98,6 +100,12 @@ class EloquentTransactionImportRepository implements TransactionImportRepository
                 ->all();
 
             $detailRows = [];
+            $inventoryUsage = [];
+            $recipeRows = DB::table('product_inventory')
+                ->whereIn('product_id', $products->pluck('id')->all())
+                ->get(['product_id', 'inventory_id', 'usage_qty'])
+                ->groupBy('product_id');
+
             foreach ($transactions as $transaction) {
                 $receiptNo = $transaction['receipt_no'];
                 $transactionId = $transactionIds[$receiptNo] ?? throw new Exception("Transaksi {$receiptNo} gagal dipetakan setelah import.");
@@ -118,11 +126,22 @@ class EloquentTransactionImportRepository implements TransactionImportRepository
                         'created_at' => $trxDate,
                         'updated_at' => $now,
                     ];
+
+                    foreach ($recipeRows->get($product->id, collect()) as $recipeRow) {
+                        $inventoryUsage[$recipeRow->inventory_id] = ($inventoryUsage[$recipeRow->inventory_id] ?? 0)
+                            + ((float) $recipeRow->usage_qty * $qty);
+                    }
                 }
             }
 
             foreach (array_chunk($detailRows, self::INSERT_CHUNK_SIZE) as $chunk) {
                 DB::table('transaction_details')->insert($chunk);
+            }
+
+            foreach ($inventoryUsage as $inventoryId => $usedQuantity) {
+                DB::table('inventories')
+                    ->where('id', $inventoryId)
+                    ->decrement('current_stock', $usedQuantity, ['updated_at' => $now]);
             }
         });
         Cache::flush();

@@ -47,6 +47,7 @@ class ImportTransactionsFromCsv
             $transactions[] = [
                 'receipt_no' => trim($record['receipt_no']),
                 'trx_date' => trim($record['trx_date']),
+                'payment_method' => trim((string) ($record['payment_method'] ?? 'CASH')) ?: 'CASH',
                 'total_amount' => (float) $record['total_amount'],
             ];
         }
@@ -97,6 +98,7 @@ class ImportTransactionsFromCsv
                 $transactions[$receiptNo] = [
                     'receipt_no' => $receiptNo,
                     'trx_date' => trim($record['trx_date']),
+                    'payment_method' => trim((string) ($record['payment_method'] ?? 'CASH')) ?: 'CASH',
                     'items' => [],
                 ];
             }

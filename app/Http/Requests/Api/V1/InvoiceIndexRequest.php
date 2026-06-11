@@ -18,7 +18,7 @@ class InvoiceIndexRequest extends FormRequest
     {
         return [
             'search'      => 'sometimes|nullable|string|max:255',
-            'sort_by'     => 'sometimes|string|in:created_at,trx_date,total_amount,receipt_no',
+            'sort_by'     => 'sometimes|string|in:created_at,trx_date,total_amount,receipt_no,payment_method',
             'sort_dir'    => 'sometimes|string|in:asc,desc',
             'filter_date' => 'sometimes|string',
             'per_page'    => 'sometimes|integer|min:1|max:100',
