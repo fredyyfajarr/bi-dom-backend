@@ -30,6 +30,20 @@ class DashboardRepository
         return DB::table('transactions')->where('trx_date', '>=', $startDate)->count('id');
     }
 
+    public function getInventoryUsageSince(Carbon $startDate): Collection
+    {
+        return DB::table('transaction_details')
+            ->join('transactions', 'transaction_details.transaction_id', '=', 'transactions.id')
+            ->join('product_inventory', 'transaction_details.product_id', '=', 'product_inventory.product_id')
+            ->where('transactions.trx_date', '>=', $startDate)
+            ->select(
+                'product_inventory.inventory_id',
+                DB::raw('SUM(transaction_details.qty * product_inventory.usage_qty) as total_usage')
+            )
+            ->groupBy('product_inventory.inventory_id')
+            ->get();
+    }
+
     public function getAllInventories(): Collection
     {
         return DB::table('inventories')->get();
