@@ -1,133 +1,150 @@
-```text
-__________.___  ________   ________      _____    __________                
-\______   \   | \______ \  \_____  \    /     \   \______   \_____    ____  
- |    |  _/   |  |    |  \  /   |   \  /  \ /  \   |    |  _/\__  \ _/ ___\ 
- |    |   \   |  |    `   \/    |    \/    Y    \  |    |   \ / __ \\  \___ 
- |______  /___| /_______  /\_______  /\____|__  /  |______  /(____  /\___  >
-        \/              \/         \/         \/          \/      \/     \/ 
- __                      .___                                               
-|  | __ ____   ____    __| _/                                               
-|  |/ // __ \ /    \  / __ |                                                
-|    <\  ___/|   |  \/ /_/ |                                                
-|__|_ \\___  >___|  /\____ |                                                
-     \/    \/     \/      \/                                                
-```
+# BI DOM Backend
 
-<div align="center">
-  <p align="center">
-    <a href="https://github.com/fredyyfajarr/bi-dom-backend/issues">
-      <img src="https://img.shields.io/github/issues/fredyyfajarr/bi-dom-backend?style=for-the-badge&color=red" alt="Issues" />
-    </a>
-    <a href="https://github.com/fredyyfajarr/bi-dom-backend/pulls">
-      <img src="https://img.shields.io/github/issues-pr/fredyyfajarr/bi-dom-backend?style=for-the-badge&color=red" alt="Pull Requests" />
-    </a>
-    <a href="https://github.com/fredyyfajarr/bi-dom-backend/stargazers">
-      <img src="https://img.shields.io/github/stars/fredyyfajarr/bi-dom-backend?style=for-the-badge&color=red" alt="Stars" />
-    </a>
-  </p>
-</div>
+Backend REST API for DOM Social Hub Business Intelligence. The API powers dashboard analytics, transaction imports, invoice views, master products, recipe-based inventory usage, and SMA inventory forecasting.
 
-## Table of Contents
-- [About The Project](#about-the-project)
-- [Key Features](#key-features)
-- [Tech Stack](#tech-stack)
-- [Project Structure](#project-structure)
-- [Getting Started](#getting-started)
-- [Usage](#usage)
-- [Contributing](#contributing)
-- [License / Copyright](#license--copyright)
+## Core Features
 
-## About The Project
+- **Authentication:** Sanctum token authentication for manager/kasir access.
+- **Dashboard analytics:** revenue, COGS, net profit, top products, category mix, peak hours, market basket, and KPI summaries.
+- **Invoice API:** paginated invoices with receipt number, transaction date, total amount, payment method, and detail endpoint.
+- **CSV transaction import:** supports simple transaction CSV and itemized receipt CSV.
+- **Payment method support:** imported and stored transaction payment methods such as `CASH`, `QRIS`, and `DEBIT`.
+- **Master product management:** products have category, selling price, COGS, and recipe materials.
+- **Recipe-based stock deduction:** itemized imports reduce inventory stock from `product_inventory.usage_qty * sold quantity`.
+- **Inventory alert forecasting:** predicts next-week ingredient usage using a 30-day SMA of actual recipe usage from transaction details.
+- **FrankenPHP / Laravel Octane runtime:** intended to run as the backend service on port `8000`.
 
-BI DOM Backend is a specialized Business Intelligence and Inventory Management REST API built on Laravel 13. It is specifically designed to crunch transactional data, generate inventory forecasts, and provide actionable business metrics securely and efficiently to its client applications.
+## Inventory Forecasting Flow
 
-The platform provides a solid foundation for enterprise reporting, enabling CSV transaction imports, automated COGS (Cost of Goods Sold) calculations, and dynamic PDF report generation. It heavily utilizes Laravel Octane for high-performance requests, making it exceptionally fast when handling bulk reporting data or heavy forecast algorithms.
+The forecasting feature is not a standalone module. It connects transaction import, master product, recipe materials, and inventory alert.
 
-## Key Features
-
-- **Inventory Forecasting Algorithm:** Built-in predictive metrics to forecast inventory requirements based on historical transactions.
-- **Transaction Processing:** High-throughput transactional data ingestion, including support for bulk CSV imports and automated COGS linking.
-- **Reporting & Exports:** Dynamic report generation capabilities allowing business users to export analytical results as pristine PDFs (`barryvdh/laravel-dompdf`).
-- **High Performance:** Configured out-of-the-box with Laravel Octane and FrankenPHP to ensure minimal latency and maximal request throughput.
-- **Robust Security:** Stateful and Token-based authentication using Laravel Sanctum to protect sensitive BI data.
-- **Comprehensive Test Suite:** Highly tested logic using PHPUnit, especially around the tricky Inventory Forecast Calculator constraints.
-
-## Tech Stack
-
-- **Framework:** [Laravel 13](https://laravel.com/)
-- **Runtime:** PHP ^8.3 (with FrankenPHP via Octane)
-- **Database:** Relational DB (MySQL / PostgreSQL supported)
-- **Authentication:** Laravel Sanctum
-- **PDF Generation:** `laravel-dompdf`
-- **Testing:** PHPUnit, Faker, Mockery
-
-## Project Structure
+1. Master Product stores menu items and their ingredient recipes in `product_inventory`.
+2. CSV import creates `transactions` and `transaction_details`.
+3. For each imported product row, backend calculates ingredient usage and deducts `inventories.current_stock`.
+4. Inventory Alert reads the last 30 days of transaction details and recipe usage.
+5. Predicted usage is calculated as:
 
 ```text
-bi-dom-backend/
-├── app/                  # Application core (Controllers, Models, BI Services)
-├── config/               # Laravel configuration files
-├── database/             # Migrations, Model Factories, and complex Seeders
-│   ├── migrations/       # Schema definitions (users, inventory, transactions, etc.)
-│   ├── samples/          # Sample CSV files for import testing
-│   └── seeders/          # Database population classes
-├── public/               # Web root and FrankenPHP worker entry point
-├── resources/            # Views (Blade templates for PDF reports)
-├── routes/               # API and Web route definitions
-├── storage/              # Generated PDFs, Logs, and Framework cache
-└── tests/                # Feature and Unit tests (Forecast algorithms, CSV parsers)
+next_week_usage = (total_ingredient_usage_last_30_days / 30) * 7
 ```
 
-## Getting Started
+6. Alert status is calculated as:
 
-### Prerequisites
-- PHP >= 8.3
-- Composer
-- A Database Engine (MySQL, PostgreSQL, or SQLite)
-- Node.js & npm (for potential asset bundling)
+```text
+Kritis if current_stock - predicted_usage <= min_stock
+```
 
-### Installation
+If the database only has simple transactions without product details, the alert falls back to `usage_per_trx`.
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/fredyyfajarr/bi-dom-backend.git
-   ```
-2. Navigate into the application directory:
-   ```bash
-   cd bi-dom-backend
-   ```
-3. Run the automated setup script. This installs dependencies, creates an `.env` file, generates an app key, runs migrations, and builds assets:
-   ```bash
-   composer setup
-   ```
-4. *Alternatively*, set up manually by running `composer install`, copying `.env.example` to `.env`, generating the app key, and running `php artisan migrate`.
+## Menu And Seed Data
 
-## Usage
+The seeders include DOM Social Hub menu data and estimated recipe materials:
 
-1. Start the development server (runs the server, queue worker, and log listener concurrently):
-   ```bash
-   composer dev
-   ```
-   *(Or simply run `php artisan serve` if you prefer the standard approach)*
-2. To seed the database with realistic business intelligence transaction data:
-   ```bash
-   php artisan db:seed --class=RealisticTransactionSeeder
-   ```
-3. To execute the test suite:
-   ```bash
-   composer test
-   ```
+- `database/seeders/ProductSeeder.php`
+- `database/seeders/InventorySeeder.php`
 
-## Contributing
+Current seeded demo catalog:
 
-Contributions are highly valued. Whether it's adding new forecasting models or fixing reporting logic, please feel free to fork the repository.
+- 45 active menu products
+- 42 inventory materials
+- Categories: Coffee, Non-Coffee, Tea, Mocktail, Frappe, Main Course, Finger Foods
 
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'feat: Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+## CSV Samples
 
-## License / Copyright
+Sample import files are stored in `database/samples`.
 
-Copyright &copy; 2026 Fredy Fajar Adi Putra. All Rights Reserved.
+- `import-transactions-dom-menu-inventory-alert-test.csv`
+  - Internal validation file.
+  - Uses receipt prefix `DOM-ALERT-*`.
+  - Designed to trigger inventory alerts.
+- `import-transactions-dom-menu-inventory-alert-demo-fresh.csv`
+  - Demo file for manual presentation testing.
+  - Uses fresh receipt prefix `DOM-DEMO-PRESENT-*`.
+  - Do not pre-import this file before a live demo if you want all rows to be accepted.
+
+Itemized CSV format:
+
+```csv
+receipt_no,trx_date,product_name,qty,subtotal,payment_method
+DOM-DEMO-PRESENT-001,2026-06-12 09:05:00,DOM's Original,8,200000,QRIS
+DOM-DEMO-PRESENT-001,2026-06-12 09:05:00,Kopi Latte,6,150000,QRIS
+```
+
+`payment_method` is optional. If omitted, the backend defaults to `CASH`.
+
+## Main API Endpoints
+
+Base URL:
+
+```text
+http://127.0.0.1:8000/api/v1
+```
+
+Common endpoints:
+
+- `POST /login`
+- `POST /logout`
+- `GET /dashboard`
+- `GET /dashboard/categories-list`
+- `GET /invoices`
+- `GET /invoices/{id}`
+- `POST /import`
+- `GET /products`
+- `POST /products`
+- `PUT /products/{id}`
+- `DELETE /products/{id}`
+- `GET /inventory/alerts`
+- `POST /inventory/update-stock`
+- `POST /inventory/items`
+
+Opening `/api/v1` directly in a browser returns `404` because it is only an API prefix.
+
+## Local Development
+
+Install dependencies:
+
+```bash
+composer install
+```
+
+Prepare environment:
+
+```bash
+cp .env.example .env
+php artisan key:generate
+php artisan migrate
+php artisan db:seed --class=InventorySeeder
+php artisan db:seed --class=ProductSeeder
+```
+
+Run standard Laravel server:
+
+```bash
+php artisan serve
+```
+
+Run with Octane / FrankenPHP:
+
+```bash
+php artisan octane:start --server=frankenphp --host=0.0.0.0 --port=8000
+```
+
+In the project workspace, the VS Code build task is intended to run the backend through the Docker/Octane setup so the API listens on port `8000`.
+
+## Validation
+
+Run unit tests:
+
+```bash
+php artisan test --testsuite=Unit
+```
+
+Run all tests:
+
+```bash
+php artisan test
+```
+
+## Copyright
+
+Copyright (c) 2026 Fredy Fajar Adi Putra. All Rights Reserved.
