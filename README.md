@@ -8,6 +8,7 @@ Backend REST API for DOM Social Hub Business Intelligence. The API powers dashbo
 - **Dashboard analytics:** revenue, COGS, net profit, top products, category mix, peak hours, market basket, and KPI summaries.
 - **Invoice API:** paginated invoices with receipt number, transaction date, total amount, payment method, and detail endpoint.
 - **CSV transaction import:** supports simple transaction CSV and itemized receipt CSV.
+- **Partial itemized import:** valid receipts are imported even when other receipts in the same CSV contain unknown products.
 - **Payment method support:** imported and stored transaction payment methods such as `CASH`, `QRIS`, and `DEBIT`; values are normalized to uppercase.
 - **Master product management:** products have category, selling price, COGS, and required recipe materials.
 - **Recipe-based stock deduction:** itemized imports reduce inventory stock from `product_inventory.usage_qty * sold quantity`.
@@ -81,6 +82,8 @@ DOM-DEMO-PRESENT-001,2026-06-12 09:05:00,Kopi Latte,6,150000,QRIS
 ```
 
 `payment_method` is optional. If omitted, the backend defaults to `CASH`; if provided, it is normalized to uppercase.
+
+For itemized CSV, validation runs per receipt. If a receipt contains a `product_name` that is not available in Master Product, that whole receipt is rejected, but other valid receipts in the same file are still imported. Rejected receipts are returned in `rejected_receipts` with the missing product names.
 
 ## Main API Endpoints
 

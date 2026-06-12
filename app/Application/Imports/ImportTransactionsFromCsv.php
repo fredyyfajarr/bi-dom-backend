@@ -126,6 +126,8 @@ class ImportTransactionsFromCsv
             }
         }
 
+        $rejectedReceipts = $this->rejectReceiptsWithUnknownProducts($transactions);
+
         $insertedCount = 0;
         $detailCount = 0;
         if (!empty($transactions)) {
@@ -139,6 +141,8 @@ class ImportTransactionsFromCsv
             'itemized',
             count($skippedReceipts),
             $skippedReceipts,
+            count($rejectedReceipts),
+            $rejectedReceipts,
         );
     }
 
@@ -164,7 +168,10 @@ class ImportTransactionsFromCsv
 
     private function normalizeHeader(array $header): array
     {
-        return array_map(fn ($column) => strtolower(trim((string) $column)), $header);
+        return array_map(
+            fn ($column) => strtolower(trim((string) $column, "\xEF\xBB\xBF \t\n\r\0\x0B")),
+            $header,
+        );
     }
 
     private function hasColumns(array $header, array $columns): bool
@@ -195,5 +202,51 @@ class ImportTransactionsFromCsv
         $paymentMethod = strtoupper(trim((string) ($value ?? '')));
 
         return $paymentMethod !== '' ? $paymentMethod : 'CASH';
+    }
+
+    /**
+     * @param  array<string, array<string, mixed>>  $transactions
+     * @return array<int, array{receipt_no: string, reason: string, products: array<int, string>}>
+     */
+    private function rejectReceiptsWithUnknownProducts(array &$transactions): array
+    {
+        if (empty($transactions)) {
+            return [];
+        }
+
+        $productNames = collect($transactions)
+            ->flatMap(fn ($transaction) => array_column($transaction['items'], 'product_name'))
+            ->unique()
+            ->values()
+            ->all();
+        $existingProductNames = $this->repository->getExistingProductNames($productNames);
+        $missingProductNames = array_values(array_diff($productNames, $existingProductNames));
+
+        if (empty($missingProductNames)) {
+            return [];
+        }
+
+        $missingLookup = array_flip($missingProductNames);
+        $rejectedReceipts = [];
+
+        foreach ($transactions as $receiptNo => $transaction) {
+            $missingInReceipt = collect($transaction['items'])
+                ->pluck('product_name')
+                ->filter(fn ($productName) => isset($missingLookup[$productName]))
+                ->unique()
+                ->values()
+                ->all();
+
+            if (!empty($missingInReceipt)) {
+                $rejectedReceipts[] = [
+                    'receipt_no' => $receiptNo,
+                    'reason' => 'Produk tidak ditemukan di master data',
+                    'products' => $missingInReceipt,
+                ];
+                unset($transactions[$receiptNo]);
+            }
+        }
+
+        return $rejectedReceipts;
     }
 }

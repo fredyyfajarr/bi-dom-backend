@@ -13,4 +13,10 @@ interface TransactionImportRepositoryInterface
      * @return array<int, string>
      */
     public function getExistingReceiptNos(array $receiptNos): array;
+
+    /**
+     * @param  array<int, string>  $productNames
+     * @return array<int, string>
+     */
+    public function getExistingProductNames(array $productNames): array;
 }

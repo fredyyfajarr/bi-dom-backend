@@ -31,6 +31,9 @@ class ImportController extends Controller
             if ($result->skippedCount > 0) {
                 $message .= " {$result->skippedCount} transaksi di-skip (receipt sudah ada).";
             }
+            if ($result->rejectedCount > 0) {
+                $message .= " {$result->rejectedCount} transaksi ditolak (data tidak cocok master).";
+            }
 
             return $this->successResponse(
                 [
@@ -39,6 +42,8 @@ class ImportController extends Controller
                     'details' => $result->detailCount,
                     'skipped_count' => $result->skippedCount,
                     'skipped_receipts' => $result->skippedReceipts,
+                    'rejected_count' => $result->rejectedCount,
+                    'rejected_receipts' => $result->rejectedReceipts,
                 ],
                 $message,
             );

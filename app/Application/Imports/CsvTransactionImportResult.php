@@ -10,6 +10,8 @@ class CsvTransactionImportResult
         public readonly string $format,
         public readonly int $skippedCount = 0,
         public readonly array $skippedReceipts = [],
+        public readonly int $rejectedCount = 0,
+        public readonly array $rejectedReceipts = [],
     ) {
     }
 }

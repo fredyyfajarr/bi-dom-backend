@@ -24,6 +24,19 @@ class EloquentTransactionImportRepository implements TransactionImportRepository
             ->all();
     }
 
+    public function getExistingProductNames(array $productNames): array
+    {
+        if (empty($productNames)) {
+            return [];
+        }
+
+        return DB::table('products')
+            ->whereNull('deleted_at')
+            ->whereIn('name', $productNames)
+            ->pluck('name')
+            ->all();
+    }
+
     public function saveSimpleTransactions(array $transactions): int
     {
         $now = now();
@@ -53,6 +66,7 @@ class EloquentTransactionImportRepository implements TransactionImportRepository
             ->all();
 
         $products = DB::table('products')
+            ->whereNull('deleted_at')
             ->whereIn('name', $productNames)
             ->get(['id', 'name', 'price', 'cogs'])
             ->keyBy('name');
