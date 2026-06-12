@@ -16,12 +16,12 @@ class ReportController extends Controller
     public function exportPdf(ReportExportRequest $request): Response|JsonResponse
     {
         try {
-            $days = $request->days();
-            $pdfOutput = $this->service->generateMonthlyPdf($days);
+            $filters = $request->filters();
+            $pdfOutput = $this->service->generateDashboardPdf($filters);
 
             return response($pdfOutput, 200)
                 ->header('Content-Type', 'application/pdf')
-                ->header('Content-Disposition', 'attachment; filename="DOM_Report_Last_'.$days.'_Days.pdf"');
+                ->header('Content-Disposition', 'attachment; filename="DOM_Dashboard_Report.pdf"');
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,

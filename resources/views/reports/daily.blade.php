@@ -131,7 +131,7 @@
         </table>
     </div>
 
-    <h3>// EXECUTIVE_SUMMARY (Last {{ $days }} Days)</h3>
+    <h3>// EXECUTIVE_SUMMARY ({{ $filter_label ?? 'Last '.$days.' Days' }})</h3>
     <table class="kpi-container" style="margin-left: -10px; width: 105%;">
         <tr>
             <td width="33%">

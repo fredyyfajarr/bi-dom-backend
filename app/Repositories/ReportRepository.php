@@ -7,19 +7,47 @@ use Illuminate\Support\Facades\DB;
 
 class ReportRepository
 {
+    private function applyCategoryFilter(mixed $query, ?int $categoryId, string $column = 'products.category_id'): mixed
+    {
+        if ($categoryId) {
+            $query->where($column, $categoryId);
+        }
+
+        return $query;
+    }
+
+    public function getCategoryName(int $categoryId): ?string
+    {
+        return DB::table('categories')->where('id', $categoryId)->value('name');
+    }
+
     /**
      * @return array<string, mixed>
      */
-    public function getReportData(Carbon $startDate): array
+    public function getReportData(Carbon $startDate, Carbon $endDate, ?int $categoryId = null): array
     {
-        $kpi = DB::table('transactions')
-            ->where('trx_date', '>=', $startDate)
-            ->selectRaw('
-                SUM(total_amount) as revenue,
-                SUM(total_cogs) as total_cogs,
-                SUM(net_profit) as net_profit,
-                COUNT(id) as trx_count
-            ')->first();
+        if ($categoryId) {
+            $kpi = DB::table('transaction_details')
+                ->join('transactions', 'transaction_details.transaction_id', '=', 'transactions.id')
+                ->join('products', 'transaction_details.product_id', '=', 'products.id')
+                ->whereBetween('transactions.trx_date', [$startDate, $endDate])
+                ->where('products.category_id', $categoryId)
+                ->selectRaw('
+                    SUM(transaction_details.subtotal) as revenue,
+                    SUM(transaction_details.subtotal_cogs) as total_cogs,
+                    SUM(transaction_details.subtotal - transaction_details.subtotal_cogs) as net_profit,
+                    COUNT(DISTINCT transactions.id) as trx_count
+                ')->first();
+        } else {
+            $kpi = DB::table('transactions')
+                ->whereBetween('trx_date', [$startDate, $endDate])
+                ->selectRaw('
+                    SUM(total_amount) as revenue,
+                    SUM(total_cogs) as total_cogs,
+                    SUM(net_profit) as net_profit,
+                    COUNT(id) as trx_count
+                ')->first();
+        }
 
         $revenue = (float) ($kpi->revenue ?? 0);
         $netProfit = (float) ($kpi->net_profit ?? 0);
@@ -28,7 +56,11 @@ class ReportRepository
         $topItems = DB::table('transaction_details')
             ->leftJoin('products', 'transaction_details.product_id', '=', 'products.id')
             ->join('transactions', 'transaction_details.transaction_id', '=', 'transactions.id')
-            ->where('transactions.trx_date', '>=', $startDate)
+            ->whereBetween('transactions.trx_date', [$startDate, $endDate]);
+
+        $this->applyCategoryFilter($topItems, $categoryId);
+
+        $topItems = $topItems
             ->select(
                 DB::raw('COALESCE(products.name, transaction_details.product_name) as name'),
                 DB::raw('SUM(transaction_details.qty) as total_qty')
@@ -46,7 +78,16 @@ class ReportRepository
             ->leftJoin('products as p1', 'td1.product_id', '=', 'p1.id')
             ->leftJoin('products as p2', 'td2.product_id', '=', 'p2.id')
             ->join('transactions as trx', 'td1.transaction_id', '=', 'trx.id')
-            ->where('trx.trx_date', '>=', $startDate)
+            ->whereBetween('trx.trx_date', [$startDate, $endDate]);
+
+        if ($categoryId) {
+            $marketBasket->where(function ($inner) use ($categoryId) {
+                $inner->where('p1.category_id', $categoryId)
+                    ->orWhere('p2.category_id', $categoryId);
+            });
+        }
+
+        $marketBasket = $marketBasket
             ->select(
                 DB::raw('COALESCE(p1.name, td1.product_name) as product_a'),
                 DB::raw('COALESCE(p2.name, td2.product_name) as product_b'),

@@ -12,6 +12,15 @@ class DashboardRepository
 
     protected string $qtyCol = 'transaction_details.qty';
 
+    private function applyCategoryFilter(mixed $query, ?int $categoryId, string $column = 'products.category_id'): mixed
+    {
+        if ($categoryId) {
+            $query->where($column, $categoryId);
+        }
+
+        return $query;
+    }
+
     /**
      * @return array<int, int>
      */
@@ -80,39 +89,45 @@ class DashboardRepository
         return DB::table('inventories')->get();
     }
 
-    public function getKpiStats(Carbon $startDate, Carbon $endDate, array $excludeCategories = []): ?object
+    public function getKpiStats(Carbon $startDate, Carbon $endDate, array $excludeCategories = [], ?int $categoryId = null): ?object
     {
-        if (empty($excludeCategories)) {
+        if (empty($excludeCategories) && ! $categoryId) {
             return DB::table('transactions')
                 ->whereBetween('trx_date', [$startDate, $endDate])
                 ->selectRaw('SUM(total_amount) as total_revenue, SUM(total_cogs) as total_cogs, SUM(net_profit) as net_profit, COUNT(id) as total_count')
                 ->first();
         } else {
-            return DB::table('transaction_details')
+            $query = DB::table('transaction_details')
                 ->join('transactions', 'transaction_details.transaction_id', '=', 'transactions.id')
                 ->join('products', 'transaction_details.product_id', '=', 'products.id')
-                ->whereBetween('transactions.trx_date', [$startDate, $endDate])
-                ->whereNotIn('products.category_id', $excludeCategories)
-                ->selectRaw('SUM(transaction_details.subtotal) as total_revenue, SUM(transaction_details.subtotal_cogs) as total_cogs, COUNT(DISTINCT transactions.id) as total_count')
-                ->first();
+                ->whereBetween('transactions.trx_date', [$startDate, $endDate]);
+
+            if (! empty($excludeCategories)) {
+                $query->whereNotIn('products.category_id', $excludeCategories);
+            }
+            $this->applyCategoryFilter($query, $categoryId);
+
+            return $query->selectRaw('SUM(transaction_details.subtotal) as total_revenue, SUM(transaction_details.subtotal_cogs) as total_cogs, COUNT(DISTINCT transactions.id) as total_count')->first();
         }
     }
 
-    public function getChartData(Carbon $startDate, Carbon $endDate, string $period): Collection
+    public function getChartData(Carbon $startDate, Carbon $endDate, string $period, ?int $categoryId = null): Collection
     {
-        return DB::table('transaction_details')
+        $query = DB::table('transaction_details')
             ->join('transactions', 'transaction_details.transaction_id', '=', 'transactions.id')
             ->join('products', 'transaction_details.product_id', '=', 'products.id')
-            ->whereBetween('transactions.trx_date', [$startDate, $endDate])
-            ->select(
-                'products.category_id',
-                DB::raw("SUM({$this->revenueCol}) as total_revenue"),
-                DB::raw($period === 'year' ? 'MONTH(transactions.trx_date) as time_unit' : 'DAY(transactions.trx_date) as time_unit')
-            )
-            ->groupBy('products.category_id', 'time_unit')->get();
+            ->whereBetween('transactions.trx_date', [$startDate, $endDate]);
+
+        $this->applyCategoryFilter($query, $categoryId);
+
+        return $query->select(
+            'products.category_id',
+            DB::raw("SUM({$this->revenueCol}) as total_revenue"),
+            DB::raw($period === 'year' ? 'MONTH(transactions.trx_date) as time_unit' : 'DAY(transactions.trx_date) as time_unit')
+        )->groupBy('products.category_id', 'time_unit')->get();
     }
 
-    public function getLatestTransactions(Carbon $startDate, Carbon $endDate, array $excludeCategories = []): Collection
+    public function getLatestTransactions(Carbon $startDate, Carbon $endDate, array $excludeCategories = [], ?int $categoryId = null): Collection
     {
         $query = DB::table('transaction_details')
             ->join('transactions', 'transaction_details.transaction_id', '=', 'transactions.id')
@@ -122,6 +137,7 @@ class DashboardRepository
         if (! empty($excludeCategories)) {
             $query->whereNotIn('products.category_id', $excludeCategories);
         }
+        $this->applyCategoryFilter($query, $categoryId);
 
         return $query->select('transactions.id', 'transactions.receipt_no', DB::raw("SUM({$this->revenueCol}) as total_amount"))
             ->groupBy('transactions.id', 'transactions.receipt_no')
@@ -129,7 +145,29 @@ class DashboardRepository
             ->limit(10)->get();
     }
 
-    public function getTopProducts(Carbon $startDate, Carbon $endDate, array $excludeCategories = []): Collection
+    public function getTransactionsForDrillThrough(Carbon $startDate, Carbon $endDate, ?int $categoryId = null): Collection
+    {
+        $query = DB::table('transaction_details')
+            ->join('transactions', 'transaction_details.transaction_id', '=', 'transactions.id')
+            ->join('products', 'transaction_details.product_id', '=', 'products.id')
+            ->whereBetween('transactions.trx_date', [$startDate, $endDate]);
+
+        $this->applyCategoryFilter($query, $categoryId);
+
+        return $query->select(
+            'transactions.id',
+            'transactions.receipt_no',
+            'transactions.trx_date',
+            'transactions.payment_method',
+            DB::raw("SUM({$this->revenueCol}) as total_amount")
+        )
+            ->groupBy('transactions.id', 'transactions.receipt_no', 'transactions.trx_date', 'transactions.payment_method')
+            ->orderByDesc('transactions.trx_date')
+            ->limit(25)
+            ->get();
+    }
+
+    public function getTopProducts(Carbon $startDate, Carbon $endDate, array $excludeCategories = [], ?int $categoryId = null): Collection
     {
         $query = DB::table('transaction_details')
             ->join('transactions', 'transaction_details.transaction_id', '=', 'transactions.id')
@@ -139,6 +177,7 @@ class DashboardRepository
         if (! empty($excludeCategories)) {
             $query->whereNotIn('products.category_id', $excludeCategories);
         }
+        $this->applyCategoryFilter($query, $categoryId);
 
         return $query->select(
                 DB::raw("COALESCE(products.name, transaction_details.product_name) as name"),
@@ -169,7 +208,7 @@ class DashboardRepository
             ->get();
     }
 
-    public function getCategoryProportions(Carbon $startDate, Carbon $endDate, array $excludeCategories = []): Collection
+    public function getCategoryProportions(Carbon $startDate, Carbon $endDate, array $excludeCategories = [], ?int $categoryId = null): Collection
     {
         $query = DB::table('transaction_details')
             ->join('transactions', 'transaction_details.transaction_id', '=', 'transactions.id')
@@ -180,48 +219,75 @@ class DashboardRepository
         if (! empty($excludeCategories)) {
             $query->whereNotIn('products.category_id', $excludeCategories);
         }
+        $this->applyCategoryFilter($query, $categoryId);
 
         return $query->select('categories.name as label', DB::raw("SUM({$this->qtyCol}) as value"))
             ->groupBy('categories.id', 'categories.name')
             ->get();
     }
 
-    public function getDailyRevenue(Carbon $startDate, Carbon $endDate): Collection
+    public function getDailyRevenue(Carbon $startDate, Carbon $endDate, ?int $categoryId = null): Collection
     {
-        return DB::table('transactions')
-            ->whereBetween('trx_date', [$startDate, $endDate])
-            ->selectRaw('DAYNAME(trx_date) as day_name, DAYOFWEEK(trx_date) as day_num, SUM(total_amount) as total')
+        if (! $categoryId) {
+            return DB::table('transactions')
+                ->whereBetween('trx_date', [$startDate, $endDate])
+                ->selectRaw('DAYNAME(trx_date) as day_name, DAYOFWEEK(trx_date) as day_num, SUM(total_amount) as total')
+                ->groupBy('day_name', 'day_num')
+                ->orderBy('day_num')
+                ->get();
+        }
+
+        return DB::table('transaction_details')
+            ->join('transactions', 'transaction_details.transaction_id', '=', 'transactions.id')
+            ->join('products', 'transaction_details.product_id', '=', 'products.id')
+            ->whereBetween('transactions.trx_date', [$startDate, $endDate])
+            ->where('products.category_id', $categoryId)
+            ->selectRaw('DAYNAME(transactions.trx_date) as day_name, DAYOFWEEK(transactions.trx_date) as day_num, SUM(transaction_details.subtotal) as total')
             ->groupBy('day_name', 'day_num')
             ->orderBy('day_num')
             ->get();
     }
 
-    public function getPeakHours(Carbon $startDate, Carbon $endDate): Collection
+    public function getPeakHours(Carbon $startDate, Carbon $endDate, ?int $categoryId = null): Collection
     {
-        return DB::table('transactions')
-            ->whereBetween('trx_date', [$startDate, $endDate])
-            ->selectRaw('DAYNAME(trx_date) as day_name, HOUR(trx_date) as hour, COUNT(id) as total_trx')
-            ->groupBy('day_name', 'hour')
-            ->get();
-    }
-
-    public function getStackedCategoryTrend(Carbon $startDate, Carbon $endDate, string $period): Collection
-    {
-        $timeUnit = $period === 'year' ? 'MONTH(transactions.trx_date)' : 'DAY(transactions.trx_date)';
+        if (! $categoryId) {
+            return DB::table('transactions')
+                ->whereBetween('trx_date', [$startDate, $endDate])
+                ->selectRaw('DAYNAME(trx_date) as day_name, HOUR(trx_date) as hour, COUNT(id) as total_trx')
+                ->groupBy('day_name', 'hour')
+                ->get();
+        }
 
         return DB::table('transaction_details')
             ->join('transactions', 'transaction_details.transaction_id', '=', 'transactions.id')
             ->join('products', 'transaction_details.product_id', '=', 'products.id')
-            ->join('categories', 'products.category_id', '=', 'categories.id')
             ->whereBetween('transactions.trx_date', [$startDate, $endDate])
-            ->selectRaw("categories.name as category_name, {$timeUnit} as time_unit, SUM({$this->revenueCol}) as total_revenue")
+            ->where('products.category_id', $categoryId)
+            ->selectRaw('DAYNAME(transactions.trx_date) as day_name, HOUR(transactions.trx_date) as hour, COUNT(DISTINCT transactions.id) as total_trx')
+            ->groupBy('day_name', 'hour')
+            ->get();
+    }
+
+    public function getStackedCategoryTrend(Carbon $startDate, Carbon $endDate, string $period, ?int $categoryId = null): Collection
+    {
+        $timeUnit = $period === 'year' ? 'MONTH(transactions.trx_date)' : 'DAY(transactions.trx_date)';
+
+        $query = DB::table('transaction_details')
+            ->join('transactions', 'transaction_details.transaction_id', '=', 'transactions.id')
+            ->join('products', 'transaction_details.product_id', '=', 'products.id')
+            ->join('categories', 'products.category_id', '=', 'categories.id')
+            ->whereBetween('transactions.trx_date', [$startDate, $endDate]);
+
+        $this->applyCategoryFilter($query, $categoryId);
+
+        return $query->selectRaw("categories.name as category_name, {$timeUnit} as time_unit, SUM({$this->revenueCol}) as total_revenue")
             ->groupBy('categories.id', 'categories.name', 'time_unit')
             ->get();
     }
 
-    public function getMarketBasket(Carbon $startDate, Carbon $endDate): Collection
+    public function getMarketBasket(Carbon $startDate, Carbon $endDate, ?int $categoryId = null): Collection
     {
-        return DB::table('transaction_details as td1')
+        $query = DB::table('transaction_details as td1')
             ->join('transaction_details as td2', function ($join) {
                 $join->on('td1.transaction_id', '=', 'td2.transaction_id')
                     ->whereRaw('td1.product_id < td2.product_id');
@@ -229,8 +295,16 @@ class DashboardRepository
             ->join('products as p1', 'td1.product_id', '=', 'p1.id')
             ->join('products as p2', 'td2.product_id', '=', 'p2.id')
             ->join('transactions as trx', 'td1.transaction_id', '=', 'trx.id')
-            ->whereBetween('trx.trx_date', [$startDate, $endDate])
-            ->select('p1.name as product_a', 'p2.name as product_b', DB::raw('COUNT(DISTINCT td1.transaction_id) as times_bought_together'))
+            ->whereBetween('trx.trx_date', [$startDate, $endDate]);
+
+        if ($categoryId) {
+            $query->where(function ($inner) use ($categoryId) {
+                $inner->where('p1.category_id', $categoryId)
+                    ->orWhere('p2.category_id', $categoryId);
+            });
+        }
+
+        return $query->select('p1.name as product_a', 'p2.name as product_b', DB::raw('COUNT(DISTINCT td1.transaction_id) as times_bought_together'))
             ->groupBy('product_a', 'product_b')
             ->orderByDesc('times_bought_together')
             ->limit(5)
@@ -240,20 +314,35 @@ class DashboardRepository
     /**
      * @return array{total_trx: int, top_items: Collection, market_basket: Collection}
      */
-    public function getPeakHourDrillDown(Carbon $startDate, Carbon $endDate, mixed $dayName, mixed $hour): array
+    public function getPeakHourDrillDown(Carbon $startDate, Carbon $endDate, mixed $dayName, mixed $hour, ?int $categoryId = null): array
     {
-        $trxCount = DB::table('transactions')
+        $trxQuery = DB::table('transactions')
             ->whereBetween('trx_date', [$startDate, $endDate])
             ->whereRaw('DAYNAME(trx_date) = ?', [$dayName])
-            ->whereRaw('HOUR(trx_date) = ?', [$hour])
-            ->count('id');
+            ->whereRaw('HOUR(trx_date) = ?', [$hour]);
+
+        if ($categoryId) {
+            $trxQuery->whereExists(function ($subquery) use ($categoryId) {
+                $subquery->select(DB::raw(1))
+                    ->from('transaction_details')
+                    ->join('products', 'transaction_details.product_id', '=', 'products.id')
+                    ->whereColumn('transaction_details.transaction_id', 'transactions.id')
+                    ->where('products.category_id', $categoryId);
+            });
+        }
+
+        $trxCount = $trxQuery->count('id');
 
         $topItems = DB::table('transaction_details')
             ->join('transactions', 'transaction_details.transaction_id', '=', 'transactions.id')
             ->join('products', 'transaction_details.product_id', '=', 'products.id')
             ->whereBetween('transactions.trx_date', [$startDate, $endDate])
             ->whereRaw('DAYNAME(transactions.trx_date) = ?', [$dayName])
-            ->whereRaw('HOUR(transactions.trx_date) = ?', [$hour])
+            ->whereRaw('HOUR(transactions.trx_date) = ?', [$hour]);
+
+        $this->applyCategoryFilter($topItems, $categoryId);
+
+        $topItems = $topItems
             ->select('products.name', DB::raw('SUM(transaction_details.qty) as total_qty'))
             ->groupBy('products.id', 'products.name')
             ->orderByDesc('total_qty')
@@ -270,7 +359,16 @@ class DashboardRepository
             ->join('transactions as trx', 'td1.transaction_id', '=', 'trx.id')
             ->whereBetween('trx.trx_date', [$startDate, $endDate])
             ->whereRaw('DAYNAME(trx.trx_date) = ?', [$dayName])
-            ->whereRaw('HOUR(trx.trx_date) = ?', [$hour])
+            ->whereRaw('HOUR(trx.trx_date) = ?', [$hour]);
+
+        if ($categoryId) {
+            $marketBasket->where(function ($inner) use ($categoryId) {
+                $inner->where('p1.category_id', $categoryId)
+                    ->orWhere('p2.category_id', $categoryId);
+            });
+        }
+
+        $marketBasket = $marketBasket
             ->select('p1.name as product_a', 'p2.name as product_b', DB::raw('COUNT(DISTINCT td1.transaction_id) as times_bought_together'))
             ->groupBy('product_a', 'product_b')
             ->orderByDesc('times_bought_together')

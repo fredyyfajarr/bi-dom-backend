@@ -60,6 +60,7 @@ Route::prefix('v1')->group(function () {
                 Route::get('/categories-list', [DashboardController::class, 'getCategoriesList']);
                 Route::get('/kpi', [DashboardController::class, 'getKpi']);
                 Route::get('/charts', [DashboardController::class, 'getCharts']);
+                Route::get('/chart-transactions', [DashboardController::class, 'getChartTransactions']);
                 Route::get('/transactions', [DashboardController::class, 'getTransactions']);
                 Route::get('/transactions/{id}', [DashboardController::class, 'getTransactionDetail']);
                 Route::get('/top-products', [DashboardController::class, 'getTopProducts']);

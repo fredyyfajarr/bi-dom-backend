@@ -6,6 +6,8 @@ Backend REST API for DOM Social Hub Business Intelligence. The API powers dashbo
 
 - **Authentication:** Sanctum token authentication for manager/kasir access.
 - **Dashboard analytics:** revenue, COGS, net profit, top products, category mix, peak hours, market basket, and KPI summaries.
+- **BI slicers and drill-through:** dashboard endpoints support date range and category filters, plus chart-point transaction drill-through.
+- **Filtered dashboard PDF export:** report export follows dashboard year/month, date range, and category filters.
 - **Invoice API:** paginated invoices with receipt number, transaction date, total amount, payment method, and detail endpoint.
 - **CSV transaction import:** supports simple transaction CSV and itemized receipt CSV.
 - **Partial itemized import:** valid receipts are imported even when other receipts in the same CSV contain unknown products.
@@ -99,6 +101,9 @@ Common endpoints:
 - `POST /logout`
 - `GET /dashboard`
 - `GET /dashboard/categories-list`
+- `GET /dashboard/charts`
+- `GET /dashboard/chart-transactions`
+- `GET /reports/export-pdf`
 - `GET /invoices`
 - `GET /invoices/{id}`
 - `POST /import`

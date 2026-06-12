@@ -28,31 +28,51 @@ class DashboardController extends Controller
 
     public function getKpi(DashboardFilterRequest $request): JsonResponse
     {
-        [$year, $period, $monthIndex, $exclude] = $request->filters();
+        [$year, $period, $monthIndex, $exclude, $startDate, $endDate, $categoryId] = $request->filters();
 
-        return response()->json(['success' => true, 'data' => $this->service->getKpiStats($year, $period, $monthIndex, $exclude)]);
+        return response()->json(['success' => true, 'data' => $this->service->getKpiStats($year, $period, $monthIndex, $exclude, $startDate, $endDate, $categoryId)]);
     }
 
     public function getCharts(DashboardFilterRequest $request): JsonResponse
     {
         // Chart sengaja tidak menerima $exclude agar garisnya tetap utuh dan animasinya mulus
-        [$year, $period, $monthIndex] = $request->filters();
+        [$year, $period, $monthIndex, , $startDate, $endDate, $categoryId] = $request->filters();
 
-        return response()->json(['success' => true, 'data' => $this->service->getSalesChart($year, $period, $monthIndex)]);
+        return response()->json(['success' => true, 'data' => $this->service->getSalesChart($year, $period, $monthIndex, $startDate, $endDate, $categoryId)]);
+    }
+
+    public function getChartTransactions(DashboardFilterRequest $request): JsonResponse
+    {
+        [$year, $period, $monthIndex, , $startDate, $endDate, $categoryId] = $request->filters();
+        $pointIndex = (int) $request->query('pointIndex', 0);
+        $clickedCategoryId = $request->query('clickedCategoryId');
+
+        return response()->json([
+            'success' => true,
+            'data' => $this->service->getChartPointTransactions(
+                $year,
+                $period,
+                $monthIndex,
+                $pointIndex,
+                $startDate,
+                $endDate,
+                $clickedCategoryId ? (int) $clickedCategoryId : $categoryId,
+            ),
+        ]);
     }
 
     public function getTransactions(DashboardFilterRequest $request): JsonResponse
     {
-        [$year, $period, $monthIndex, $exclude] = $request->filters();
+        [$year, $period, $monthIndex, $exclude, $startDate, $endDate, $categoryId] = $request->filters();
 
-        return response()->json(['success' => true, 'data' => $this->service->getLatestTransactions($year, $period, $monthIndex, $exclude)]);
+        return response()->json(['success' => true, 'data' => $this->service->getLatestTransactions($year, $period, $monthIndex, $exclude, $startDate, $endDate, $categoryId)]);
     }
 
     public function getTopProducts(DashboardFilterRequest $request): JsonResponse
     {
-        [$year, $period, $monthIndex, $exclude] = $request->filters();
+        [$year, $period, $monthIndex, $exclude, $startDate, $endDate, $categoryId] = $request->filters();
 
-        return response()->json(['success' => true, 'data' => $this->service->getTopProducts($year, $period, $monthIndex, $exclude)]);
+        return response()->json(['success' => true, 'data' => $this->service->getTopProducts($year, $period, $monthIndex, $exclude, $startDate, $endDate, $categoryId)]);
     }
 
     public function getTransactionDetail(int $id): JsonResponse
@@ -67,38 +87,38 @@ class DashboardController extends Controller
 
     public function getDonutData(DashboardFilterRequest $request): JsonResponse
     {
-        [$year, $period, $monthIndex, $exclude] = $request->filters();
+        [$year, $period, $monthIndex, $exclude, $startDate, $endDate, $categoryId] = $request->filters();
 
         return response()->json([
             'success' => true,
-            'data' => $this->service->getCategoryProportions($year, $period, $monthIndex, $exclude),
+            'data' => $this->service->getCategoryProportions($year, $period, $monthIndex, $exclude, $startDate, $endDate, $categoryId),
         ]);
     }
 
     public function getAdvancedAnalytics(DashboardFilterRequest $request): JsonResponse
     {
-        [$year, $period, $monthIndex] = $request->filters();
+        [$year, $period, $monthIndex, , $startDate, $endDate, $categoryId] = $request->filters();
 
         return response()->json([
             'success' => true,
             'data' => [
-                'daily_revenue' => $this->service->getDailyRevenue($year, $period, $monthIndex),
-                'peak_hours' => $this->service->getPeakHours($year, $period, $monthIndex),
-                'stacked_trend' => $this->service->getStackedCategoryTrend($year, $period, $monthIndex),
-                'market_basket' => $this->service->getMarketBasket($year, $period, $monthIndex),
+                'daily_revenue' => $this->service->getDailyRevenue($year, $period, $monthIndex, $startDate, $endDate, $categoryId),
+                'peak_hours' => $this->service->getPeakHours($year, $period, $monthIndex, $startDate, $endDate, $categoryId),
+                'stacked_trend' => $this->service->getStackedCategoryTrend($year, $period, $monthIndex, $startDate, $endDate, $categoryId),
+                'market_basket' => $this->service->getMarketBasket($year, $period, $monthIndex, $startDate, $endDate, $categoryId),
             ],
         ]);
     }
 
     public function getPeakHourDetail(DashboardFilterRequest $request): JsonResponse
     {
-        [$year, $period, $monthIndex] = $request->filters();
+        [$year, $period, $monthIndex, , $startDate, $endDate, $categoryId] = $request->filters();
         $dayName = $request->query('day');
         $hour = $request->query('hour');
 
         return response()->json([
             'success' => true,
-            'data' => $this->service->getPeakHourDetail($year, $period, $monthIndex, $dayName, $hour),
+            'data' => $this->service->getPeakHourDetail($year, $period, $monthIndex, $dayName, $hour, $startDate, $endDate, $categoryId),
         ]);
     }
 }
