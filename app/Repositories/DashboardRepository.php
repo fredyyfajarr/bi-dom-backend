@@ -22,7 +22,10 @@ class DashboardRepository
 
     public function getCategoriesList(): Collection
     {
-        return DB::table('categories')->select('id', 'name')->get();
+        return DB::table('categories')
+            ->whereNull('deleted_at')
+            ->select('id', 'name')
+            ->get();
     }
 
     public function getTotalTransactionsSince(Carbon $startDate): int

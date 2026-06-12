@@ -21,9 +21,9 @@ class StoreProductRequest extends FormRequest
             'category_id'              => 'required|integer|exists:categories,id',
             'price'                    => 'required|numeric|min:0',
             'cogs'                     => 'required|numeric|min:0',
-            'materials'                => 'nullable|array',
-            'materials.*.inventory_id' => 'required_with:materials|integer|exists:inventories,id',
-            'materials.*.usage_qty'    => 'required_with:materials|numeric|min:0.01',
+            'materials'                => 'required|array|min:1',
+            'materials.*.inventory_id' => 'required|integer|exists:inventories,id',
+            'materials.*.usage_qty'    => 'required|numeric|min:0.01',
         ];
     }
 

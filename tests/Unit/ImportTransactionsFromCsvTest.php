@@ -29,15 +29,16 @@ class ImportTransactionsFromCsvTest extends TestCase
         $useCase = new ImportTransactionsFromCsv($repository);
 
         $result = $useCase->execute($this->csvFile([
-            ['receipt_no', 'trx_date', 'product_name', 'qty', 'subtotal'],
-            ['INV-001', '2026-04-28 10:30:00', 'Aren Latte', '2', '40000'],
-            ['INV-001', '2026-04-28 10:30:00', 'Mix Platter', '1', '35000'],
+            ['receipt_no', 'trx_date', 'product_name', 'qty', 'subtotal', 'payment_method'],
+            ['INV-001', '2026-04-28 10:30:00', 'Aren Latte', '2', '40000', 'qris'],
+            ['INV-001', '2026-04-28 10:30:00', 'Mix Platter', '1', '35000', 'qris'],
         ]));
 
         $this->assertSame('itemized', $result->format);
         $this->assertSame(1, $result->transactionCount);
         $this->assertSame(2, $result->detailCount);
         $this->assertCount(2, $repository->itemizedTransactions[0]['items']);
+        $this->assertSame('QRIS', $repository->itemizedTransactions[0]['payment_method']);
     }
 
     private function csvFile(array $rows): string

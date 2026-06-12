@@ -22,10 +22,20 @@ class InventoryForecastCalculator
         return ($totalUsageLast30Days / 30) * 7;
     }
 
-    public function buildAlert(object $item, int $forecastTransactions, ?float $forecastUsage = null): array
+    public function buildAlert(
+        object $item,
+        int $forecastTransactions,
+        ?float $forecastUsage = null,
+        ?bool $hasUsageHistory = null,
+    ): array
     {
         $predictedUsage = $forecastUsage ?? ($forecastTransactions * (float) $item->usage_per_trx);
         $remainingStock = (float) $item->current_stock - $predictedUsage;
+        $usageBasis = match (true) {
+            $forecastUsage === null => 'TRX_AVG_FALLBACK',
+            $hasUsageHistory === true => 'RECIPE_SMA_30D',
+            default => 'NO_RECENT_USAGE',
+        };
 
         return [
             'id' => $item->id,
@@ -33,6 +43,7 @@ class InventoryForecastCalculator
             'current_stock' => $item->current_stock,
             'unit' => $item->unit,
             'predicted_usage' => round($predictedUsage, 2),
+            'usage_basis' => $usageBasis,
             'status' => $remainingStock <= (float) $item->min_stock ? 'Kritis' : 'Aman',
         ];
     }

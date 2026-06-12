@@ -47,7 +47,7 @@ class ImportTransactionsFromCsv
             $transactions[] = [
                 'receipt_no' => trim($record['receipt_no']),
                 'trx_date' => trim($record['trx_date']),
-                'payment_method' => trim((string) ($record['payment_method'] ?? 'CASH')) ?: 'CASH',
+                'payment_method' => $this->normalizePaymentMethod($record['payment_method'] ?? null),
                 'total_amount' => (float) $record['total_amount'],
             ];
         }
@@ -98,7 +98,7 @@ class ImportTransactionsFromCsv
                 $transactions[$receiptNo] = [
                     'receipt_no' => $receiptNo,
                     'trx_date' => trim($record['trx_date']),
-                    'payment_method' => trim((string) ($record['payment_method'] ?? 'CASH')) ?: 'CASH',
+                    'payment_method' => $this->normalizePaymentMethod($record['payment_method'] ?? null),
                     'items' => [],
                 ];
             }
@@ -188,5 +188,12 @@ class ImportTransactionsFromCsv
         }
 
         return true;
+    }
+
+    private function normalizePaymentMethod(mixed $value): string
+    {
+        $paymentMethod = strtoupper(trim((string) ($value ?? '')));
+
+        return $paymentMethod !== '' ? $paymentMethod : 'CASH';
     }
 }

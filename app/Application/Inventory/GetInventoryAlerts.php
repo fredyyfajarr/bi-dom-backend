@@ -29,11 +29,13 @@ class GetInventoryAlerts
         $alerts = $this->inventoryRepository
             ->getAllItems()
             ->map(function ($item) use ($forecastTransactions, $hasRecipeUsageHistory, $usageByInventory) {
+                $totalUsage = (float) ($usageByInventory[$item->id] ?? 0);
                 $forecastUsage = $hasRecipeUsageHistory
-                    ? $this->calculator->nextWeekUsage((float) ($usageByInventory[$item->id] ?? 0))
+                    ? $this->calculator->nextWeekUsage($totalUsage)
                     : null;
+                $hasUsageHistory = $hasRecipeUsageHistory ? $totalUsage > 0 : null;
 
-                return $this->calculator->buildAlert($item, $forecastTransactions, $forecastUsage);
+                return $this->calculator->buildAlert($item, $forecastTransactions, $forecastUsage, $hasUsageHistory);
             });
 
         return [

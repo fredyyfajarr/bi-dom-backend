@@ -8,10 +8,10 @@ Backend REST API for DOM Social Hub Business Intelligence. The API powers dashbo
 - **Dashboard analytics:** revenue, COGS, net profit, top products, category mix, peak hours, market basket, and KPI summaries.
 - **Invoice API:** paginated invoices with receipt number, transaction date, total amount, payment method, and detail endpoint.
 - **CSV transaction import:** supports simple transaction CSV and itemized receipt CSV.
-- **Payment method support:** imported and stored transaction payment methods such as `CASH`, `QRIS`, and `DEBIT`.
-- **Master product management:** products have category, selling price, COGS, and recipe materials.
+- **Payment method support:** imported and stored transaction payment methods such as `CASH`, `QRIS`, and `DEBIT`; values are normalized to uppercase.
+- **Master product management:** products have category, selling price, COGS, and required recipe materials.
 - **Recipe-based stock deduction:** itemized imports reduce inventory stock from `product_inventory.usage_qty * sold quantity`.
-- **Inventory alert forecasting:** predicts next-week ingredient usage using a 30-day SMA of actual recipe usage from transaction details.
+- **Inventory alert forecasting:** predicts next-week ingredient usage using a 30-day SMA of actual recipe usage from transaction details, with explicit usage basis metadata.
 - **FrankenPHP / Laravel Octane runtime:** intended to run as the backend service on port `8000`.
 
 ## Inventory Forecasting Flow
@@ -35,6 +35,14 @@ Kritis if current_stock - predicted_usage <= min_stock
 ```
 
 If the database only has simple transactions without product details, the alert falls back to `usage_per_trx`.
+
+Every Inventory Alert row also returns `usage_basis`:
+
+- `RECIPE_SMA_30D`: ingredient has recipe-based usage history in the last 30 days.
+- `NO_RECENT_USAGE`: recipe-based history exists in the system, but this ingredient was not used in the last 30 days.
+- `TRX_AVG_FALLBACK`: no recipe-based usage history is available yet, so the system falls back to `usage_per_trx`.
+
+Products are required to have at least one recipe material. This prevents menu items from bypassing stock deduction and forecasting.
 
 ## Menu And Seed Data
 
@@ -70,7 +78,7 @@ DOM-DEMO-PRESENT-001,2026-06-12 09:05:00,DOM's Original,8,200000,QRIS
 DOM-DEMO-PRESENT-001,2026-06-12 09:05:00,Kopi Latte,6,150000,QRIS
 ```
 
-`payment_method` is optional. If omitted, the backend defaults to `CASH`.
+`payment_method` is optional. If omitted, the backend defaults to `CASH`; if provided, it is normalized to uppercase.
 
 ## Main API Endpoints
 

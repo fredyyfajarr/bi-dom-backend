@@ -38,6 +38,7 @@ class InventoryForecastCalculatorTest extends TestCase
 
         $this->assertSame('Kritis', $alert['status']);
         $this->assertSame(8.0, $alert['predicted_usage']);
+        $this->assertSame('TRX_AVG_FALLBACK', $alert['usage_basis']);
     }
 
     public function test_it_prefers_recipe_usage_forecast_when_available(): void
@@ -51,9 +52,27 @@ class InventoryForecastCalculatorTest extends TestCase
             'unit' => 'L',
             'usage_per_trx' => 2,
             'min_stock' => 3,
-        ], 4, 5.5);
+        ], 4, 5.5, true);
 
         $this->assertSame('Aman', $alert['status']);
         $this->assertSame(5.5, $alert['predicted_usage']);
+        $this->assertSame('RECIPE_SMA_30D', $alert['usage_basis']);
+    }
+
+    public function test_it_marks_zero_recipe_usage_as_no_recent_usage(): void
+    {
+        $calculator = new InventoryForecastCalculator();
+
+        $alert = $calculator->buildAlert((object) [
+            'id' => 1,
+            'item_name' => 'Lemon Syrup',
+            'current_stock' => 10,
+            'unit' => 'L',
+            'usage_per_trx' => 2,
+            'min_stock' => 3,
+        ], 4, 0.0, false);
+
+        $this->assertSame(0.0, $alert['predicted_usage']);
+        $this->assertSame('NO_RECENT_USAGE', $alert['usage_basis']);
     }
 }

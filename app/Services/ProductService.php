@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Product;
 use App\Repositories\ProductRepository;
+use Exception;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -75,6 +76,10 @@ class ProductService
             if (! empty($material['inventory_id']) && ! empty($material['usage_qty'])) {
                 $syncData[$material['inventory_id']] = ['usage_qty' => $material['usage_qty']];
             }
+        }
+
+        if (empty($syncData)) {
+            throw new Exception('Minimal satu bahan recipe wajib diisi agar inventory forecasting berjalan.');
         }
 
         return $syncData;
