@@ -18,11 +18,12 @@ class GetInventoryAlerts
 
     public function execute(): array
     {
-        $startDate = Carbon::now()->subDays(30);
-        $totalTransactions = $this->dashboardRepository->getTotalTransactionsSince($startDate);
+        $endDate = $this->dashboardRepository->getLatestTransactionDate() ?? Carbon::now();
+        $startDate = $endDate->copy()->subDays(30);
+        $totalTransactions = $this->dashboardRepository->getTotalTransactionsBetween($startDate, $endDate);
         $forecastTransactions = $this->calculator->nextWeekTransactions($totalTransactions);
         $usageByInventory = $this->dashboardRepository
-            ->getInventoryUsageSince($startDate)
+            ->getInventoryUsageBetween($startDate, $endDate)
             ->pluck('total_usage', 'inventory_id');
         $hasRecipeUsageHistory = $usageByInventory->isNotEmpty();
 
@@ -40,6 +41,8 @@ class GetInventoryAlerts
 
         return [
             'forecast_next_week_trx' => $forecastTransactions,
+            'forecast_window_start' => $startDate->toDateString(),
+            'forecast_window_end' => $endDate->toDateString(),
             'inventory_alerts' => $alerts,
         ];
     }

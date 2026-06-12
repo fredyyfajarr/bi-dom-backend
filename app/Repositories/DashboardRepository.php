@@ -33,12 +33,40 @@ class DashboardRepository
         return DB::table('transactions')->where('trx_date', '>=', $startDate)->count('id');
     }
 
+    public function getLatestTransactionDate(): ?Carbon
+    {
+        $latestDate = DB::table('transactions')->max('trx_date');
+
+        return $latestDate ? Carbon::parse($latestDate) : null;
+    }
+
+    public function getTotalTransactionsBetween(Carbon $startDate, Carbon $endDate): int
+    {
+        return DB::table('transactions')
+            ->whereBetween('trx_date', [$startDate, $endDate])
+            ->count('id');
+    }
+
     public function getInventoryUsageSince(Carbon $startDate): Collection
     {
         return DB::table('transaction_details')
             ->join('transactions', 'transaction_details.transaction_id', '=', 'transactions.id')
             ->join('product_inventory', 'transaction_details.product_id', '=', 'product_inventory.product_id')
             ->where('transactions.trx_date', '>=', $startDate)
+            ->select(
+                'product_inventory.inventory_id',
+                DB::raw('SUM(transaction_details.qty * product_inventory.usage_qty) as total_usage')
+            )
+            ->groupBy('product_inventory.inventory_id')
+            ->get();
+    }
+
+    public function getInventoryUsageBetween(Carbon $startDate, Carbon $endDate): Collection
+    {
+        return DB::table('transaction_details')
+            ->join('transactions', 'transaction_details.transaction_id', '=', 'transactions.id')
+            ->join('product_inventory', 'transaction_details.product_id', '=', 'product_inventory.product_id')
+            ->whereBetween('transactions.trx_date', [$startDate, $endDate])
             ->select(
                 'product_inventory.inventory_id',
                 DB::raw('SUM(transaction_details.qty * product_inventory.usage_qty) as total_usage')

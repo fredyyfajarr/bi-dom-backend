@@ -21,11 +21,11 @@ The forecasting feature is not a standalone module. It connects transaction impo
 1. Master Product stores menu items and their ingredient recipes in `product_inventory`.
 2. CSV import creates `transactions` and `transaction_details`.
 3. For each imported product row, backend calculates ingredient usage and deducts `inventories.current_stock`.
-4. Inventory Alert reads the last 30 days of transaction details and recipe usage.
+4. Inventory Alert reads the last 30 days of transaction details and recipe usage, anchored to the latest imported transaction date.
 5. Predicted usage is calculated as:
 
 ```text
-next_week_usage = (total_ingredient_usage_last_30_days / 30) * 7
+next_week_usage = (total_ingredient_usage_last_30_days_from_latest_csv_date / 30) * 7
 ```
 
 6. Alert status is calculated as:
@@ -43,6 +43,8 @@ Every Inventory Alert row also returns `usage_basis`:
 - `TRX_AVG_FALLBACK`: no recipe-based usage history is available yet, so the system falls back to `usage_per_trx`.
 
 Products are required to have at least one recipe material. This prevents menu items from bypassing stock deduction and forecasting.
+
+Because the project currently uses manual CSV imports as the transaction source, the forecast window follows the latest transaction date in the imported data. This keeps demo or historical CSV files meaningful even when their transaction dates do not match the server's current date.
 
 ## Menu And Seed Data
 
