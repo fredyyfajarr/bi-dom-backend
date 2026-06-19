@@ -1,4 +1,4 @@
-<?php
+    <?php
 
 namespace Database\Seeders;
 
@@ -106,19 +106,6 @@ class ProductSeeder extends Seeder
             $product->materials()->sync($syncData);
         }
 
-        Product::whereIn('name', [
-            'Kopi Susu DOM',
-            'Caramel Macchiato',
-            'Zafeer Milktea',
-            'Matcha Latte',
-            'Ayam Chili Padi',
-            'Nasi Goreng DOM',
-            'Spaghetti Aglio Olio',
-            'Mix Platter',
-            'French Fries',
-            'ESPRESSO',
-        ])->delete();
 
-        Category::whereIn('name', ['Snacks'])->delete();
     }
 }
