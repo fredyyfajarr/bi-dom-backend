@@ -38,21 +38,35 @@ class ImportTransactionsFromCsv
     private function importSimpleRows(array $header, array $rows): CsvTransactionImportResult
     {
         $transactions = [];
+        $rejectedReceipts = [];
         foreach ($rows as $row) {
             $record = $this->combineRow($header, $row);
+            $receiptNo = trim((string) ($record['receipt_no'] ?? ''));
+
             if (!$this->isFilled($record, self::SIMPLE_COLUMNS)) {
+                if ($receiptNo !== '') {
+                    $rejectedReceipts[$receiptNo] = [
+                        'receipt_no' => $receiptNo,
+                        'reason' => 'Data tidak lengkap (kolom wajib ada yang kosong)',
+                        'products' => [],
+                    ];
+                }
                 continue;
             }
 
-            $transactions[] = [
-                'receipt_no' => trim($record['receipt_no']),
+            if (isset($rejectedReceipts[$receiptNo])) {
+                continue;
+            }
+
+            $transactions[$receiptNo] = [
+                'receipt_no' => $receiptNo,
                 'trx_date' => trim($record['trx_date']),
                 'payment_method' => $this->normalizePaymentMethod($record['payment_method'] ?? null),
                 'total_amount' => (float) $record['total_amount'],
             ];
         }
 
-        if (empty($transactions)) {
+        if (empty($transactions) && empty($rejectedReceipts)) {
             throw new Exception('Tidak ada transaksi valid di CSV.');
         }
 
@@ -75,25 +89,43 @@ class ImportTransactionsFromCsv
             $insertedCount = $this->repository->saveSimpleTransactions($filteredTransactions);
         }
 
+        $allRejected = array_values($rejectedReceipts);
+
         return new CsvTransactionImportResult(
             $insertedCount,
             0,
             'simple',
             count($skippedReceipts),
             $skippedReceipts,
+            count($allRejected),
+            $allRejected,
         );
     }
 
     private function importItemizedRows(array $header, array $rows): CsvTransactionImportResult
     {
         $transactions = [];
+        $rejectedReceipts = [];
         foreach ($rows as $row) {
             $record = $this->combineRow($header, $row);
+            $receiptNo = trim((string) ($record['receipt_no'] ?? ''));
+
             if (!$this->isFilled($record, self::ITEMIZED_COLUMNS)) {
+                if ($receiptNo !== '') {
+                    $rejectedReceipts[$receiptNo] = [
+                        'receipt_no' => $receiptNo,
+                        'reason' => 'Data tidak lengkap (kolom wajib ada yang kosong)',
+                        'products' => [],
+                    ];
+                    unset($transactions[$receiptNo]);
+                }
                 continue;
             }
 
-            $receiptNo = trim($record['receipt_no']);
+            if (isset($rejectedReceipts[$receiptNo])) {
+                continue;
+            }
+
             if (!isset($transactions[$receiptNo])) {
                 $transactions[$receiptNo] = [
                     'receipt_no' => $receiptNo,
@@ -110,7 +142,7 @@ class ImportTransactionsFromCsv
             ];
         }
 
-        if (empty($transactions)) {
+        if (empty($transactions) && empty($rejectedReceipts)) {
             throw new Exception('Tidak ada detail transaksi valid di CSV.');
         }
 
@@ -126,7 +158,8 @@ class ImportTransactionsFromCsv
             }
         }
 
-        $rejectedReceipts = $this->rejectReceiptsWithUnknownProducts($transactions);
+        $unknownProductsRejected = $this->rejectReceiptsWithUnknownProducts($transactions);
+        $allRejected = array_merge(array_values($rejectedReceipts), $unknownProductsRejected);
 
         $insertedCount = 0;
         $detailCount = 0;
@@ -141,8 +174,8 @@ class ImportTransactionsFromCsv
             'itemized',
             count($skippedReceipts),
             $skippedReceipts,
-            count($rejectedReceipts),
-            $rejectedReceipts,
+            count($allRejected),
+            $allRejected,
         );
     }
 
