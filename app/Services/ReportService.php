@@ -24,12 +24,12 @@ class ReportService
     }
 
     /**
-     * @param  array{days: int, year: int|null, period: string, monthIndex: int|null, start_date: string|null, end_date: string|null, category_id: int|null}  $filters
+     * @param  array{days: int, year: int|null, period: string, monthIndex: int|null, exclude: array<int, string>, start_date: string|null, end_date: string|null, category_id: int|null}  $filters
      */
     public function generateDashboardPdf(array $filters): string
     {
         [$startDate, $endDate, $filterLabel] = $this->resolveDateRange($filters);
-        $data = $this->repo->getReportData($startDate, $endDate, $filters['category_id']);
+        $data = $this->repo->getReportData($startDate, $endDate, $filters['exclude'] ?? [], $filters['category_id']);
 
         $categoryName = $filters['category_id']
             ? $this->repo->getCategoryName($filters['category_id'])

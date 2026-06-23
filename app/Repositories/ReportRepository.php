@@ -24,15 +24,20 @@ class ReportRepository
     /**
      * @return array<string, mixed>
      */
-    public function getReportData(Carbon $startDate, Carbon $endDate, ?int $categoryId = null): array
+    public function getReportData(Carbon $startDate, Carbon $endDate, array $excludeCategories = [], ?int $categoryId = null): array
     {
-        if ($categoryId) {
-            $kpi = DB::table('transaction_details')
+        if (!empty($excludeCategories) || $categoryId) {
+            $query = DB::table('transaction_details')
                 ->join('transactions', 'transaction_details.transaction_id', '=', 'transactions.id')
                 ->join('products', 'transaction_details.product_id', '=', 'products.id')
-                ->whereBetween('transactions.trx_date', [$startDate, $endDate])
-                ->where('products.category_id', $categoryId)
-                ->selectRaw('
+                ->whereBetween('transactions.trx_date', [$startDate, $endDate]);
+
+            if (!empty($excludeCategories)) {
+                $query->whereNotIn('products.category_id', $excludeCategories);
+            }
+            $this->applyCategoryFilter($query, $categoryId);
+
+            $kpi = $query->selectRaw('
                     SUM(transaction_details.subtotal) as revenue,
                     SUM(transaction_details.subtotal_cogs) as total_cogs,
                     SUM(transaction_details.subtotal - transaction_details.subtotal_cogs) as net_profit,
@@ -58,6 +63,9 @@ class ReportRepository
             ->join('transactions', 'transaction_details.transaction_id', '=', 'transactions.id')
             ->whereBetween('transactions.trx_date', [$startDate, $endDate]);
 
+        if (!empty($excludeCategories)) {
+            $topItems->whereNotIn('products.category_id', $excludeCategories);
+        }
         $this->applyCategoryFilter($topItems, $categoryId);
 
         $topItems = $topItems
@@ -79,6 +87,13 @@ class ReportRepository
             ->leftJoin('products as p2', 'td2.product_id', '=', 'p2.id')
             ->join('transactions as trx', 'td1.transaction_id', '=', 'trx.id')
             ->whereBetween('trx.trx_date', [$startDate, $endDate]);
+
+        if (!empty($excludeCategories)) {
+            $marketBasket->where(function ($inner) use ($excludeCategories) {
+                $inner->whereNotIn('p1.category_id', $excludeCategories)
+                    ->whereNotIn('p2.category_id', $excludeCategories);
+            });
+        }
 
         if ($categoryId) {
             $marketBasket->where(function ($inner) use ($categoryId) {
