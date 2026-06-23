@@ -18,6 +18,33 @@ Route::prefix('v1')->group(function () {
     // ==========================================
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
 
+    Route::get('/run-online-fix', function () {
+        // Naikkan limit memori dan waktu eksekusi agar tidak timeout di shared hosting
+        ini_set('memory_limit', '512M');
+        set_time_limit(300); // 5 menit
+
+        try {
+            // Jalankan migrate:fresh --seed secara paksa
+            \Illuminate\Support\Facades\Artisan::call('migrate:fresh', [
+                '--seed' => true,
+                '--force' => true
+            ]);
+
+            // Bersihkan seluruh cache konfigurasi Laravel
+            \Illuminate\Support\Facades\Artisan::call('optimize:clear');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Online database migrated, seeded, and caches cleared successfully!'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    });
+
 
     // ==========================================
     // PROTECTED ROUTES (Wajib login Sanctum)
