@@ -113,13 +113,31 @@ class ReportRepository
             ->limit(5)
             ->get();
 
+        $wasteLoss = (float) DB::table('inventory_waste_logs')
+            ->whereBetween('logged_at', [$startDate, $endDate])
+            ->sum('total_loss');
+
+        $opnameLossVal = DB::table('stock_opnames')
+            ->whereBetween('adjusted_at', [$startDate, $endDate])
+            ->where('total_adjustment_value', '<', 0)
+            ->sum('total_adjustment_value');
+        $opnameLoss = abs((float) $opnameLossVal);
+
+        $actualNetProfit = $netProfit - $wasteLoss - $opnameLoss;
+        $actualProfitMargin = $revenue > 0 ? ($actualNetProfit / $revenue) * 100 : 0;
+
         return [
             'revenue' => $revenue,
+            'total_cogs' => (float) ($kpi->total_cogs ?? 0),
             'net_profit' => $netProfit,
             'profit_margin' => round($profitMargin, 1),
             'trx_count' => $kpi->trx_count ?? 0,
             'top_items' => $topItems,
             'market_basket' => $marketBasket,
+            'waste_loss' => $wasteLoss,
+            'opname_loss' => $opnameLoss,
+            'actual_net_profit' => $actualNetProfit,
+            'actual_profit_margin' => round($actualProfitMargin, 1),
         ];
     }
 }

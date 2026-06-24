@@ -134,26 +134,35 @@
     <h3>// EXECUTIVE_SUMMARY ({{ $filter_label ?? 'Last '.$days.' Days' }})</h3>
     <table class="kpi-container" style="margin-left: -10px; width: 105%;">
         <tr>
-            <td width="33%">
+            <td width="25%">
                 <div class="kpi-box">
                     <div class="kpi-title">Gross_Revenue</div>
-                    <div class="kpi-value">Rp {{ number_format($revenue, 0, ',', '.') }}</div>
+                    <div class="kpi-value" style="font-size: 14px;">Rp {{ number_format($revenue, 0, ',', '.') }}</div>
                 </div>
             </td>
-            <td width="34%">
-                <div class="kpi-box highlight">
-                    <div class="kpi-title" style="color: #dc2626;">Net_Profit</div>
-                    <div class="kpi-value">Rp {{ number_format($net_profit, 0, ',', '.') }}</div>
-                </div>
-            </td>
-            <td width="33%">
+            <td width="25%">
                 <div class="kpi-box">
-                    <div class="kpi-title">Margin_//_Trx</div>
-                    <div class="kpi-value">{{ $profit_margin }}% // {{ $trx_count }}</div>
+                    <div class="kpi-title">Theoretical_COGS</div>
+                    <div class="kpi-value" style="font-size: 14px;">Rp {{ number_format($total_cogs, 0, ',', '.') }}</div>
+                </div>
+            </td>
+            <td width="25%">
+                <div class="kpi-box" style="color: #dc2626; border-color: #dc2626; background: #fff5f5;">
+                    <div class="kpi-title" style="color: #dc2626;">Operational_Loss</div>
+                    <div class="kpi-value" style="font-size: 14px;">Rp {{ number_format($waste_loss + $opname_loss, 0, ',', '.') }}</div>
+                </div>
+            </td>
+            <td width="25%">
+                <div class="kpi-box highlight" style="background: #dc2626; color: #fff; border-color: #000;">
+                    <div class="kpi-title" style="color: #fff;">Laba_Aktual</div>
+                    <div class="kpi-value" style="font-size: 14px;">Rp {{ number_format($actual_net_profit, 0, ',', '.') }}</div>
                 </div>
             </td>
         </tr>
     </table>
+    <div style="font-size: 9px; font-weight: bold; margin-bottom: 25px; text-transform: uppercase; color: #555;">
+        * Margin Aktual: {{ $actual_profit_margin }}% // Total Transaksi: {{ $trx_count }}
+    </div>
 
     <h3 style="margin-top: 20px;">// TOP_PERFORMING_ITEMS</h3>
     <table class="data-table">
