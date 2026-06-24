@@ -45,6 +45,8 @@ class InventoryForecastCalculator
             'predicted_usage' => round($predictedUsage, 2),
             'usage_basis' => $usageBasis,
             'status' => $remainingStock <= (float) $item->min_stock ? 'Kritis' : 'Aman',
+            'min_stock' => (float) $item->min_stock,
+            'usage_per_trx' => (float) $item->usage_per_trx,
         ];
     }
 }
