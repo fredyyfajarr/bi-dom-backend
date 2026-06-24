@@ -103,7 +103,7 @@ class RealisticTransactionSeeder extends Seeder
                     'total_amount' => $totalAmount,
                     'total_cogs' => $totalCogs,
                     'net_profit' => $netProfit,
-                    'trx_date' => $trxTime->toDateString(),
+                    'trx_date' => $trxTime,
                     'created_at' => $trxTime,
                     'updated_at' => $trxTime,
                 ]);
