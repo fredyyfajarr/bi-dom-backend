@@ -97,6 +97,16 @@ class RealisticTransactionSeeder extends Seeder
 
                 $netProfit = $totalAmount - $totalCogs;
 
+                // Tentukan Payment Method secara realistis (50% QRIS, 40% CASH, 10% DEBIT)
+                $randVal = rand(1, 100);
+                if ($randVal <= 50) {
+                    $paymentMethod = 'QRIS';
+                } elseif ($randVal <= 90) {
+                    $paymentMethod = 'CASH';
+                } else {
+                    $paymentMethod = 'DEBIT';
+                }
+
                 // LANGKAH B: Buat Transaksi
                 $trxId = DB::table('transactions')->insertGetId([
                     'receipt_no' => 'TRX-' . $trxTime->format('Ymd') . '-' . str_pad($receiptCounter++, 4, '0', STR_PAD_LEFT),
@@ -104,6 +114,7 @@ class RealisticTransactionSeeder extends Seeder
                     'total_cogs' => $totalCogs,
                     'net_profit' => $netProfit,
                     'trx_date' => $trxTime,
+                    'payment_method' => $paymentMethod,
                     'created_at' => $trxTime,
                     'updated_at' => $trxTime,
                 ]);
