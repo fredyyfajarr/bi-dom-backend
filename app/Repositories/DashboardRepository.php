@@ -381,4 +381,22 @@ class DashboardRepository
             'market_basket' => $marketBasket,
         ];
     }
+
+    public function getWasteLoss(Carbon $startDate, Carbon $endDate): float
+    {
+        return (float) DB::table('inventory_waste_logs')
+            ->whereBetween('logged_at', [$startDate, $endDate])
+            ->sum('total_loss');
+    }
+
+    public function getOpnameLoss(Carbon $startDate, Carbon $endDate): float
+    {
+        // Sum only negative adjustments (representing shrinkage/loss) as a positive cost value
+        $val = DB::table('stock_opnames')
+            ->whereBetween('adjusted_at', [$startDate, $endDate])
+            ->where('total_adjustment_value', '<', 0)
+            ->sum('total_adjustment_value');
+
+        return abs((float) $val);
+    }
 }

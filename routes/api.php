@@ -7,6 +7,8 @@ use App\Http\Controllers\Api\v1\InventoryController;
 use App\Http\Controllers\Api\v1\InvoiceController;
 use App\Http\Controllers\Api\v1\ProductController;
 use App\Http\Controllers\Api\v1\ReportController;
+use App\Http\Controllers\Api\v1\WasteController;
+use App\Http\Controllers\Api\v1\StockOpnameController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -76,6 +78,10 @@ Route::prefix('v1')->group(function () {
                 Route::get('/list', [InventoryController::class, 'getInventoryList']);
                 Route::post('/update-stock', [InventoryController::class, 'updateStock']);
                 Route::post('/items', [InventoryController::class, 'store']);
+                Route::get('/waste', [WasteController::class, 'index']);
+                Route::post('/waste', [WasteController::class, 'store']);
+                Route::get('/opname', [StockOpnameController::class, 'index']);
+                Route::post('/opname', [StockOpnameController::class, 'store']);
             });
 
             // MODULE: REPORTS

@@ -16,6 +16,8 @@ class RealisticTransactionSeeder extends Seeder
         DB::statement('SET FOREIGN_KEY_CHECKS=0;');
         DB::table('transaction_details')->truncate();
         DB::table('transactions')->truncate();
+        DB::table('inventory_waste_logs')->truncate();
+        DB::table('stock_opnames')->truncate();
         DB::statement('SET FOREIGN_KEY_CHECKS=1;');
 
         // 2. AMBIL PRODUK OTOMATIS DARI DATABASE MAS FREDY
@@ -130,8 +132,96 @@ class RealisticTransactionSeeder extends Seeder
             $startDate->addDay();
         }
 
+        // SEED DUMMY WASTE LOGS AND STOCK OPNAMES
+        $inventories = DB::table('inventories')->get()->keyBy('item_name');
+        $wasteLogs = [];
+        $opnames = [];
+        $reasons = ['EXPIRED', 'SPILLED', 'REMAKE_ORDER'];
+
+        $currentDate = Carbon::create(2025, 1, 15);
+        $endDateLimit = Carbon::create(2026, 5, 5);
+
+        while ($currentDate->lte($endDateLimit)) {
+            // Waste Susu Fresh Milk
+            if (isset($inventories['Susu Fresh Milk'])) {
+                $qty = rand(1, 5);
+                $cost = (float) $inventories['Susu Fresh Milk']->unit_cost;
+                $wasteLogs[] = [
+                    'inventory_id' => $inventories['Susu Fresh Milk']->id,
+                    'qty_wasted' => $qty,
+                    'cost_per_unit' => $cost,
+                    'total_loss' => $qty * $cost,
+                    'reason' => $reasons[array_rand($reasons)],
+                    'logged_at' => $currentDate->copy()->addDays(rand(1, 5)),
+                    'created_at' => $currentDate,
+                    'updated_at' => $currentDate,
+                ];
+            }
+
+            // Waste Biji Kopi
+            if (isset($inventories['Biji Kopi House Blend']) && rand(1, 10) > 5) {
+                $qty = rand(1, 3) * 0.25;
+                $cost = (float) $inventories['Biji Kopi House Blend']->unit_cost;
+                $wasteLogs[] = [
+                    'inventory_id' => $inventories['Biji Kopi House Blend']->id,
+                    'qty_wasted' => $qty,
+                    'cost_per_unit' => $cost,
+                    'total_loss' => $qty * $cost,
+                    'reason' => 'SPILLED',
+                    'logged_at' => $currentDate->copy()->addDays(rand(6, 12)),
+                    'created_at' => $currentDate,
+                    'updated_at' => $currentDate,
+                ];
+            }
+
+            // Opname Biji Kopi
+            if (isset($inventories['Biji Kopi House Blend'])) {
+                $systemQty = (float) $inventories['Biji Kopi House Blend']->current_stock;
+                $discrepancy = -1 * (rand(1, 4) * 0.1);
+                $physicalQty = max(0, $systemQty + $discrepancy);
+                $cost = (float) $inventories['Biji Kopi House Blend']->unit_cost;
+
+                $opnames[] = [
+                    'inventory_id' => $inventories['Biji Kopi House Blend']->id,
+                    'system_qty' => $systemQty,
+                    'physical_qty' => $physicalQty,
+                    'discrepancy' => $discrepancy,
+                    'cost_per_unit' => $cost,
+                    'total_adjustment_value' => $discrepancy * $cost,
+                    'adjusted_at' => $currentDate->copy()->endOfMonth(),
+                    'created_at' => $currentDate,
+                    'updated_at' => $currentDate,
+                ];
+            }
+
+            // Opname Susu Fresh Milk
+            if (isset($inventories['Susu Fresh Milk'])) {
+                $systemQty = (float) $inventories['Susu Fresh Milk']->current_stock;
+                $discrepancy = -1 * rand(1, 3);
+                $physicalQty = max(0, $systemQty + $discrepancy);
+                $cost = (float) $inventories['Susu Fresh Milk']->unit_cost;
+
+                $opnames[] = [
+                    'inventory_id' => $inventories['Susu Fresh Milk']->id,
+                    'system_qty' => $systemQty,
+                    'physical_qty' => $physicalQty,
+                    'discrepancy' => $discrepancy,
+                    'cost_per_unit' => $cost,
+                    'total_adjustment_value' => $discrepancy * $cost,
+                    'adjusted_at' => $currentDate->copy()->endOfMonth()->subDay(),
+                    'created_at' => $currentDate,
+                    'updated_at' => $currentDate,
+                ];
+            }
+
+            $currentDate->addMonth();
+        }
+
+        DB::table('inventory_waste_logs')->insert($wasteLogs);
+        DB::table('stock_opnames')->insert($opnames);
+
         DB::commit();
 
-        $this->command->info('SUKSES! Data Categories 4 dan lainnya sudah di-generate otomatis.');
+        $this->command->info('SUKSES! Data Categories 4, waste logs, dan stock opnames sudah di-generate.');
     }
 }

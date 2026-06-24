@@ -87,12 +87,21 @@ class DashboardService
 
         $profitMargin = $revenue > 0 ? ($netProfit / $revenue) * 100 : 0;
 
+        $wasteLoss = $this->repo->getWasteLoss($startDate, $endDate);
+        $opnameLoss = $this->repo->getOpnameLoss($startDate, $endDate);
+        $actualNetProfit = $netProfit - $wasteLoss - $opnameLoss;
+        $actualProfitMargin = $revenue > 0 ? ($actualNetProfit / $revenue) * 100 : 0;
+
         return [
             'revenue' => $revenue,
             'total_cogs' => $cogs,
             'net_profit' => $netProfit,
             'profit_margin' => round($profitMargin, 1),
             'transaction_count' => $trxCount,
+            'waste_loss' => $wasteLoss,
+            'opname_loss' => $opnameLoss,
+            'actual_net_profit' => $actualNetProfit,
+            'actual_profit_margin' => round($actualProfitMargin, 1),
         ];
     }
 

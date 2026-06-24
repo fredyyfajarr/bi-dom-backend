@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 #[Table('inventories')]
-#[Fillable(['item_name', 'unit', 'current_stock', 'min_stock', 'usage_per_trx'])]
+#[Fillable(['item_name', 'unit', 'unit_cost', 'current_stock', 'min_stock', 'usage_per_trx'])]
 class Inventory extends Model
 {
     use HasFactory;
